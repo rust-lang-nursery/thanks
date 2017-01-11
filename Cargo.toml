@@ -1,0 +1,19 @@
+[package]
+authors = ["Steve Klabnik <steve@steveklabnik.com>"]
+name = "contributors"
+version = "0.1.0"
+
+[dependencies]
+futures = "0.1.7"
+reqwest = "0.2.0"
+serde = "0.8.22"
+serde_derive = "0.8.22"
+serde_json = "0.8.4"
+
+[dependencies.handlebars]
+version = "0.24.1"
+features = ["serde_type"]
+
+[dependencies.hyper]
+branch = "tokio"
+git = "https://github.com/hyperium/hyper"

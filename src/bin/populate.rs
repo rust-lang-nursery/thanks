@@ -64,7 +64,11 @@ fn main() {
     println!("Path to rust repo: {}", path);
     
     // create releases
+
+    // first, the unrelased commits on master
+    contributors::create_release(&connection, "master");
     
+    // then let's get to the real releases:
     println!("creating first release: 0.1");
     let first_release = contributors::create_release(&connection, "0.1");
 
@@ -75,9 +79,6 @@ fn main() {
     for release in releases.iter() {
         contributors::create_release(&connection, release);
     }
-
-    // finally, the unrelased commits on master
-    contributors::create_release(&connection, "master");
 
     // create most commits
     //

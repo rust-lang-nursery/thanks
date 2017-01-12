@@ -54,9 +54,14 @@ impl Service for Contributors {
                 let results = releases.load::<Release>(&connection)
                     .expect("Error loading releases");
 
-                let results: Vec<_> = results.into_iter().map(|r| Value::String(r.version)).collect();
+                let results: Vec<_> = results.into_iter()
+                    .rev()
+                    .filter(|r| r.version != "master") // filter out master, we want it on top
+                    .map(|r| Value::String(r.version))
+                    .collect();
 
                 let mut data: BTreeMap<String, Value> = BTreeMap::new();
+
                 data.insert("releases".to_string(), Value::Array(results));
 
                 Response::new()
@@ -68,15 +73,18 @@ impl Service for Contributors {
 
                 let mut source = String::new();
 
-
                 let mut data: BTreeMap<String, Value> = BTreeMap::new();
+
                 // strip the leading `/` lol
                 let release_name = path[1..].to_string();
+
                 data.insert("release".to_string(), Value::String(release_name.clone()));
 
                 if release_name == "all-time" {
                     let mut f = File::open("templates/all-time.hbs").unwrap();
+
                     f.read_to_string(&mut source).unwrap();
+
                     use contributors::schema::commits::dsl::*;
                     use contributors::models::Commit;
 

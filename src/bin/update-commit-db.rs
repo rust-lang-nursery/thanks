@@ -23,7 +23,26 @@ use diesel::pg::PgConnection;
 use dotenv::dotenv;
 
 use std::env;
-use std::process::Command;
+
+#[derive(Debug,Deserialize)]
+struct GitHubResponse(Vec<Object>);
+
+#[derive(Debug,Deserialize)]
+struct Object {
+    sha: String,
+    commit: Commit,
+}
+
+#[derive(Debug,Deserialize)]
+struct Commit {
+    author: Author,
+}
+
+#[derive(Debug,Deserialize)]
+struct Author {
+    name: String,
+    email: String,
+}
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
@@ -46,36 +65,13 @@ fn main() {
         }
     }
 
-    let path = env::args().nth(1).unwrap();
-    println!("Path to rust repo: {}", path);
+    let mut resp = reqwest::get("https://api.github.com/repos/rust-lang/rust/commits").unwrap();
 
-    let git_log = Command::new("git")
-        .current_dir(path)
-        .arg("--no-pager")
-        .arg("log")
-        .arg(r#"--format=%H %ae %an"#)
-        .arg("master")
-        .output()
-        .expect("failed to execute process");
+    let response: GitHubResponse = resp.json().unwrap();
 
-    let log = git_log.stdout;
-    let log = String::from_utf8(log).unwrap();
+    for object in response.0 {
+//        let commit = contributors::create_commit(&connection, &commit.sha, &commit.data.author.name, &commit.data.author.email);
 
-    for log_line in log.split('\n') {
-        // there is a last, blank line
-        if log_line == "" {
-            continue;
-        }
-
-        let mut split = log_line.splitn(3, ' ');
-
-        let sha = split.next().unwrap();
-        let author_email = split.next().unwrap();
-        let author_name = split.next().unwrap();
-
-        println!("Creating commit: {}", sha);
-        contributors::create_commit(&connection, &sha, &author_name, &author_email);
+        println!("Saved commit with sha {}", object.sha);
     }
-
-    println!("Done!");
 }

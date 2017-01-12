@@ -1,3 +1,5 @@
+extern crate contributors;
+
 #[macro_use]
 extern crate diesel;
 #[macro_use]
@@ -32,7 +34,8 @@ struct GitHubResponse {
 #[derive(Debug,Deserialize)]
 struct Commit {
     sha: String,
-    commit: CommitData,
+    #[serde(rename = "commit")]
+    data: CommitData,
 }
 
 #[derive(Debug,Deserialize)]
@@ -57,9 +60,15 @@ pub fn establish_connection() -> PgConnection {
 }
 
 fn main() {
+    let connection = establish_connection();
+
     let mut resp = reqwest::get("https://api.github.com/repos/rust-lang/rust/compare/1.13.0...1.14.0").unwrap();
 
-    let json: GitHubResponse = resp.json().unwrap();
+    let response: GitHubResponse = resp.json().unwrap();
 
-    println!("{:?}", json);
+    for commit in response.commits {
+        let commit = contributors::create_commit(&connection, &commit.sha, &commit.data.author.name, &commit.data.author.email);
+
+        println!("\nSaved commit with sha {}", commit.sha);
+    }
 }

@@ -24,3 +24,18 @@ pub fn establish_connection() -> PgConnection {
         .expect(&format!("Error connecting to {}", database_url))
 }
 
+use self::models::{Commit, NewCommit};
+
+pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str, author_email: &'a str) -> Commit {
+    use schema::commits;
+
+    let new_commit = NewCommit {
+        sha: sha,
+        author_name: author_name,
+        author_email: author_email,
+    };
+
+    diesel::insert(&new_commit).into(commits::table)
+        .get_result(conn)
+        .expect("Error saving new commit")
+}

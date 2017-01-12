@@ -70,9 +70,17 @@ impl Service for Contributors {
                 let results = commits.load::<Commit>(&connection)
                     .expect("Error loading commits");
 
-                let authors: Vec<_> = results.into_iter().map(|c| Value::String(c.sha)).collect();
 
-                data.insert("shas".to_string(), Value::Array(authors));
+                let mut names: Vec<_> = results.into_iter().map(|c| c.author_name).collect();
+
+                // lol i am a bad programmer and am not doing this in the db.
+                // it's fine, but this is a good FIXME
+                names.sort();
+                names.dedup();
+
+                let names: Vec<_> = names.into_iter().map(|n| Value::String(n)).collect();
+
+                data.insert("names".to_string(), Value::Array(names));
 
                 Response::new()
                     .with_body(handlebars.template_render(&source, &data).unwrap())

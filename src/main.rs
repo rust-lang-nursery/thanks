@@ -1,48 +1,50 @@
+#[macro_use]
+extern crate diesel;
+#[macro_use]
+extern crate diesel_codegen;
+
+extern crate dotenv;
+
 extern crate futures;
+
 extern crate handlebars;
+
 extern crate hyper;
 extern crate reqwest;
+
 extern crate serde;
-extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
+
+use diesel::prelude::*;
+use diesel::pg::PgConnection;
+use dotenv::dotenv;
 
 use hyper::{Get, StatusCode};
 use hyper::server::{Server, Service, Request, Response};
 
 use handlebars::Handlebars;
+
+use std::env;
 use std::collections::BTreeMap;
-use std::collections::HashSet;
 use std::io::prelude::*;
 use std::fs::File;
 
 use serde_json::value::Value;
 
+pub mod schema;
+pub mod models;
+
 struct Contributors;
 
-#[derive(Deserialize)]
-struct GitHubResponse {
-    url: String,
-    total_commits: u32,
-    commits: Vec<Commit>
-}
+pub fn establish_connection() -> PgConnection {
+    dotenv().ok();
 
-#[derive(Deserialize)]
-struct Commit {
-    sha: String,
-    commit: CommitData,
-}
-
-#[derive(Deserialize)]
-struct CommitData {
-    author: Author,
-}
-
-#[derive(Deserialize)]
-struct Author {
-    name: String,
-    email: String,
-    date: String,
+    let database_url = env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set");
+    PgConnection::establish(&database_url)
+        .expect(&format!("Error connecting to {}", database_url))
 }
 
 impl Service for Contributors {
@@ -62,7 +64,6 @@ impl Service for Contributors {
                 f.read_to_string(&mut source).unwrap();
 
                 let data: BTreeMap<String, String> = BTreeMap::new();
-                // data.insert("world".to_string(), "world!".to_string());
 
                 Response::new()
                     .with_body(handlebars.template_render(&source, &data).unwrap())
@@ -79,27 +80,16 @@ impl Service for Contributors {
                 // strip the leading `/` lol
                 data.insert("release".to_string(), Value::String(path[1..].to_string()));
 
-                let mut resp = reqwest::get("https://api.github.com/repos/rust-lang/rust/compare/1.13.0...1.14.0").unwrap();
+                use schema::commits::dsl::*;
+                use models::Commit;
 
-                let json: GitHubResponse = resp.json().unwrap();
+                let connection = establish_connection();
+                let results = commits.load::<Commit>(&connection)
+                    .expect("Error loading commits");
 
-                data.insert("url".to_string(), Value::String(json.url));
+                let authors: Vec<_> = results.into_iter().map(|c| Value::String(c.sha)).collect();
 
-                let mut authors = HashSet::new();
-
-                for commit in json.commits {
-                    authors.insert(commit.commit.author.name);
-                }
-
-                let mut authors: Vec<_> = authors.into_iter().collect();
-
-                authors.sort();
-
-                let authors = authors.into_iter()
-                    .map(|s| Value::String(s))
-                    .collect();
-
-                data.insert("authors".to_string(), Value::Array(authors));
+                data.insert("shas".to_string(), Value::Array(authors));
 
                 Response::new()
                     .with_body(handlebars.template_render(&source, &data).unwrap())

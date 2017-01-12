@@ -46,7 +46,17 @@ impl Service for Contributors {
 
                 f.read_to_string(&mut source).unwrap();
 
-                let data: BTreeMap<String, String> = BTreeMap::new();
+                use contributors::schema::releases::dsl::*;
+                use contributors::models::Release;
+
+                let connection = contributors::establish_connection();
+                let results = releases.load::<Release>(&connection)
+                    .expect("Error loading releases");
+
+                let results: Vec<_> = results.into_iter().map(|r| Value::String(r.version)).collect();
+
+                let mut data: BTreeMap<String, Value> = BTreeMap::new();
+                data.insert("releases".to_string(), Value::Array(results));
 
                 Response::new()
                     .with_body(handlebars.template_render(&source, &data).unwrap())
@@ -61,15 +71,19 @@ impl Service for Contributors {
 
                 let mut data: BTreeMap<String, Value> = BTreeMap::new();
                 // strip the leading `/` lol
-                data.insert("release".to_string(), Value::String(path[1..].to_string()));
+                let release_name = path[1..].to_string();
+                data.insert("release".to_string(), Value::String(release_name.clone()));
 
-                use contributors::schema::commits::dsl::*;
+                use contributors::schema::releases::dsl::*;
+                use contributors::models::Release;
                 use contributors::models::Commit;
 
                 let connection = contributors::establish_connection();
-                let results = commits.load::<Commit>(&connection)
-                    .expect("Error loading commits");
 
+                let release: Release = releases.filter(version.eq(release_name))
+                                               .first(&connection).unwrap();
+
+                let results: Vec<Commit> = Commit::belonging_to(&release).load(&connection).unwrap();
 
                 let mut names: Vec<_> = results.into_iter().map(|c| c.author_name).collect();
 

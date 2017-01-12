@@ -69,6 +69,6 @@ fn main() {
     for commit in response.commits {
         let commit = contributors::create_commit(&connection, &commit.sha, &commit.data.author.name, &commit.data.author.email);
 
-        println!("\nSaved commit with sha {}", commit.sha);
+        println!("Saved commit with sha {}", commit.sha);
     }
 }

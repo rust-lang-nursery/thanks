@@ -1,5 +1,6 @@
 CREATE TABLE commits (
-	sha VARCHAR PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
+	sha VARCHAR NOT NULL,
 	author_name VARCHAR NOT NULL,
 	author_email VARCHAR NOT NULL
 )

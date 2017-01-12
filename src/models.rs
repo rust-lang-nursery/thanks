@@ -1,12 +1,15 @@
-#[derive(Debug,Queryable)]
+#[derive(Debug,Identifiable,Queryable,Associations)]
+#[belongs_to(Release)]
 pub struct Commit {
+    pub id: i32,
     pub sha: String,
     pub author_name: String,
     pub author_email: String,
     pub release_id: Option<i32>,
 }
 
-#[derive(Debug,Queryable)]
+#[derive(Debug,Identifiable,Queryable,Associations)]
+#[has_many(commits)]
 pub struct Release {
     pub id: i32,
     pub version: String,

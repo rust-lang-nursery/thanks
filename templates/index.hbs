@@ -1,3 +1,16 @@
-<h1>Hello, world</h1>
-
-<p>:D</p>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Rust Contributors</title>
+  </head>
+  <body>
+    <h1>Rust Contributors</h1>
+    <p>Releases:</p> 
+    <ul>
+    {{#each releases as |release| }}
+        <li><a href="{{ release }}">{{ release }}</li>
+    {{/each}}
+    </ul>
+  </body>
+</html>

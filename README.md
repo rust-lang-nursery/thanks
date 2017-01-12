@@ -30,11 +30,22 @@ $ cargo install diesel_cli
 $ diesel setup
 ```
 
-To import some test data:
+Clone down the Rust repository somewhere. I put mine in `~/src`:
 
 ```bash
-psql -p 5432 -h localhost -U postgres < dump.txt
+$ cd ~/src
+$ git clone https://github.com/rust-lang/rust
 ```
+
+Import data from the repo:
+
+```bash
+$ cd - # go back to our app
+$ cargo run --bin populate -- ~/src/rust # or whever you put the Rust source
+```
+
+This will take a few minutes. At the time of writing, Rust has about 61,000
+commits that will need to be processed.
 
 Run the server:
 
@@ -50,4 +61,11 @@ To access the database from the commannd line:
 
 ```bash
 psql -p 5432 -h localhost -U postgres -d rust_contributors
+```
+
+If you're working on the `populate` binary, it's useful to be able to quickly
+drop your local database:
+
+```bash
+$ cargo run --bin the-big-red-button
 ```

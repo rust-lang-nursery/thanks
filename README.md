@@ -6,6 +6,9 @@ It's very bad right now, sorry. But it technically works!
 
 ## Setup
 
+You'll need nightly Rust for now. This will change with Rust 1.15, when
+this will run on stable.
+
 Get the app set up. You'll need postgres installed. And sqlite3 headers I
 think.
 

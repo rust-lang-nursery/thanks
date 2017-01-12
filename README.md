@@ -73,5 +73,15 @@ $ cargo run --bin the-big-red-button
 When it's time for a new release,
 
 ```bash
-$ cargo run --bin new-release
+$ cargo run --bin new-release -- ~/src/rust # or wherever your Rust is
 ```
+
+As often as you want to update, run
+
+```bash
+$ cargo run --bin update-commit-db
+```
+
+This will hit GitHub's API instead of using a local checkout of Rust, as it is
+assumed that this will run on the server, and we don't want to do a full git
+checkout there.

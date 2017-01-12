@@ -18,6 +18,7 @@ extern crate contributors;
 use diesel::prelude::*;
 
 use hyper::{Get, StatusCode};
+use hyper::header::ContentType;
 use hyper::server::{Server, Service, Request, Response};
 
 use handlebars::Handlebars;
@@ -59,45 +60,71 @@ impl Service for Contributors {
                 data.insert("releases".to_string(), Value::Array(results));
 
                 Response::new()
+                    .with_header(ContentType::html())
                     .with_body(handlebars.template_render(&source, &data).unwrap())
             },
             (&Get, Some(path)) => {
                 let handlebars = Handlebars::new();
 
-                let mut f = File::open("templates/release.hbs").unwrap();
                 let mut source = String::new();
 
-                f.read_to_string(&mut source).unwrap();
 
                 let mut data: BTreeMap<String, Value> = BTreeMap::new();
                 // strip the leading `/` lol
                 let release_name = path[1..].to_string();
                 data.insert("release".to_string(), Value::String(release_name.clone()));
 
-                use contributors::schema::releases::dsl::*;
-                use contributors::models::Release;
-                use contributors::models::Commit;
+                if release_name == "all-time" {
+                    let mut f = File::open("templates/all-time.hbs").unwrap();
+                    f.read_to_string(&mut source).unwrap();
+                    use contributors::schema::commits::dsl::*;
+                    use contributors::models::Commit;
 
-                let connection = contributors::establish_connection();
+                    let connection = contributors::establish_connection();
 
-                let release: Release = releases.filter(version.eq(release_name))
-                                               .first(&connection).unwrap();
+                    let results: Vec<Commit> = commits.load::<Commit>(&connection).unwrap();
 
-                let results: Vec<Commit> = Commit::belonging_to(&release).load(&connection).unwrap();
+                    let mut names: Vec<_> = results.into_iter().map(|c| c.author_name).collect();
 
-                let mut names: Vec<_> = results.into_iter().map(|c| c.author_name).collect();
+                    // lol i am a bad programmer and am not doing this in the db.
+                    // it's fine, but this is a good FIXME
+                    names.sort();
+                    names.dedup();
 
-                // lol i am a bad programmer and am not doing this in the db.
-                // it's fine, but this is a good FIXME
-                names.sort();
-                names.dedup();
+                    let names: Vec<_> = names.into_iter().map(Value::String).collect();
 
-                let names: Vec<_> = names.into_iter().map(Value::String).collect();
+                    data.insert("count".to_string(), Value::U64(names.len() as u64));
+                    data.insert("names".to_string(), Value::Array(names));
+                } else {
+                    let mut f = File::open("templates/release.hbs").unwrap();
+                    f.read_to_string(&mut source).unwrap();
 
-                data.insert("count".to_string(), Value::U64(names.len() as u64));
-                data.insert("names".to_string(), Value::Array(names));
+                    use contributors::schema::releases::dsl::*;
+                    use contributors::models::Release;
+                    use contributors::models::Commit;
+
+                    let connection = contributors::establish_connection();
+
+                    let release: Release = releases.filter(version.eq(release_name))
+                                                   .first(&connection).unwrap();
+
+                    let results: Vec<Commit> = Commit::belonging_to(&release).load(&connection).unwrap();
+
+                    let mut names: Vec<_> = results.into_iter().map(|c| c.author_name).collect();
+
+                    // lol i am a bad programmer and am not doing this in the db.
+                    // it's fine, but this is a good FIXME
+                    names.sort();
+                    names.dedup();
+
+                    let names: Vec<_> = names.into_iter().map(Value::String).collect();
+
+                    data.insert("count".to_string(), Value::U64(names.len() as u64));
+                    data.insert("names".to_string(), Value::Array(names));
+                }
 
                 Response::new()
+                    .with_header(ContentType::html())
                     .with_body(handlebars.template_render(&source, &data).unwrap())
             },
             _ => {

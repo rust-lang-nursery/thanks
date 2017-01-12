@@ -31,6 +31,7 @@ pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str
 
     let new_commit = NewCommit {
         sha: sha,
+        release_id: None,
         author_name: author_name,
         author_email: author_email,
     };
@@ -38,4 +39,18 @@ pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str
     diesel::insert(&new_commit).into(commits::table)
         .get_result(conn)
         .expect("Error saving new commit")
+}
+
+use self::models::{Release, NewRelease};
+
+pub fn create_release<'a>(conn: &PgConnection, version: &'a str) -> Release {
+    use schema::releases;
+
+    let new_release = NewRelease {
+        version: version,
+    };
+
+    diesel::insert(&new_release).into(releases::table)
+        .get_result(conn)
+        .expect("Error saving new release")
 }

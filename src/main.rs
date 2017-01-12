@@ -94,6 +94,7 @@ impl Service for Contributors {
 
                 let names: Vec<_> = names.into_iter().map(|n| Value::String(n)).collect();
 
+                data.insert("count".to_string(), Value::U64(names.len() as u64));
                 data.insert("names".to_string(), Value::Array(names));
 
                 Response::new()

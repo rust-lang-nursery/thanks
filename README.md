@@ -69,3 +69,9 @@ drop your local database:
 ```bash
 $ cargo run --bin the-big-red-button
 ```
+
+When it's time for a new release,
+
+```bash
+$ cargo run --bin new-release
+```

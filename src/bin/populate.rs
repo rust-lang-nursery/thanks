@@ -76,6 +76,8 @@ fn main() {
         contributors::create_release(&connection, release);
     }
 
+    // finally, the unrelased commits on master
+    contributors::create_release(&connection, "master");
 
     // create most commits
     //
@@ -143,6 +145,7 @@ fn main() {
     assign_commits("1.12.1", "1.12.0");
     assign_commits("1.13.0", "1.12.0");
     assign_commits("1.14.0", "1.13.0");
+    assign_commits("master", "1.14.0");
 
     println!("Done!");
 }

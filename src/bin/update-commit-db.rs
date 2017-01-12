@@ -54,24 +54,35 @@ pub fn establish_connection() -> PgConnection {
 }
 
 fn main() {
-    let connection = establish_connection();
-    {
-        use contributors::schema::commits::dsl::*;
-        use contributors::models::Commit;
-        let first_commit = commits.first::<Commit>(&connection);
+    use contributors::schema::releases::dsl::*;
+    use contributors::models::Release;
+    use contributors::schema::commits::dsl::*;
+    use contributors::models::Commit;
 
-        if first_commit.is_ok() {
-            panic!("you have commits in here already");
-        }
-    }
+    let connection = establish_connection();
 
     let mut resp = reqwest::get("https://api.github.com/repos/rust-lang/rust/commits").unwrap();
 
     let response: GitHubResponse = resp.json().unwrap();
 
-    for object in response.0 {
-//        let commit = contributors::create_commit(&connection, &commit.sha, &commit.data.author.name, &commit.data.author.email);
+    // find the master release so we can assign commits to it
+    let master_release = releases.filter(version.eq("master")).first::<Release>(&connection).expect("could not find release");
 
-        println!("Saved commit with sha {}", object.sha);
+    for object in response.0 {
+        println!("Found commit with sha {}", object.sha);
+
+        // do we have this commit? If so, ignore it.
+        match commits.filter(sha.eq(&object.sha)).first::<Commit>(&connection) {
+            Ok(commit) => {
+                println!("Commit {} already in db, skipping", commit.sha);
+                continue;
+            },
+            Err(_) => {
+                println!("Creating commit {} for release {}", object.sha, master_release.version);
+
+                // this commit will be part of master
+                contributors::create_commit(&connection, &object.sha, &object.commit.author.name, &object.commit.author.email, &master_release);
+            },
+        };
     }
 }

@@ -1,9 +1,5 @@
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate diesel_codegen;
-
-extern crate dotenv;
 
 extern crate futures;
 
@@ -17,35 +13,22 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
+extern crate contributors;
+
 use diesel::prelude::*;
-use diesel::pg::PgConnection;
-use dotenv::dotenv;
 
 use hyper::{Get, StatusCode};
 use hyper::server::{Server, Service, Request, Response};
 
 use handlebars::Handlebars;
 
-use std::env;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::fs::File;
 
 use serde_json::value::Value;
 
-pub mod schema;
-pub mod models;
-
 struct Contributors;
-
-pub fn establish_connection() -> PgConnection {
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
-}
 
 impl Service for Contributors {
     type Request = Request;
@@ -80,10 +63,10 @@ impl Service for Contributors {
                 // strip the leading `/` lol
                 data.insert("release".to_string(), Value::String(path[1..].to_string()));
 
-                use schema::commits::dsl::*;
-                use models::Commit;
+                use contributors::schema::commits::dsl::*;
+                use contributors::models::Commit;
 
-                let connection = establish_connection();
+                let connection = contributors::establish_connection();
                 let results = commits.load::<Commit>(&connection)
                     .expect("Error loading commits");
 

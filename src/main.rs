@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate diesel;
 
+extern crate dotenv;
+
 extern crate futures;
 
 extern crate handlebars;
@@ -146,6 +148,8 @@ impl Service for Contributors {
 
 
 fn main() {
+    dotenv::dotenv().ok();
+
     let addr = "127.0.0.1:1337".parse().unwrap();
     let (listening, server) = Server::standalone(|tokio| {
         Server::http(&addr, tokio)?

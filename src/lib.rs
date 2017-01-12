@@ -15,6 +15,9 @@ use std::env;
 pub mod schema;
 pub mod models;
 
+use self::models::{Commit, NewCommit};
+use self::models::{Release, NewRelease};
+
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
 
@@ -24,14 +27,12 @@ pub fn establish_connection() -> PgConnection {
         .expect(&format!("Error connecting to {}", database_url))
 }
 
-use self::models::{Commit, NewCommit};
-
-pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str, author_email: &'a str) -> Commit {
+pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str, author_email: &'a str, release: &Release) -> Commit {
     use schema::commits;
 
     let new_commit = NewCommit {
         sha: sha,
-        release_id: None,
+        release_id: release.id,
         author_name: author_name,
         author_email: author_email,
     };
@@ -41,7 +42,6 @@ pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str
         .expect("Error saving new commit")
 }
 
-use self::models::{Release, NewRelease};
 
 pub fn create_release(conn: &PgConnection, version: &str) -> Release {
     use schema::releases;

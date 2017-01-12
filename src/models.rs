@@ -5,7 +5,7 @@ pub struct Commit {
     pub sha: String,
     pub author_name: String,
     pub author_email: String,
-    pub release_id: Option<i32>,
+    pub release_id: i32,
 }
 
 #[derive(Debug,Identifiable,Queryable,Associations)]
@@ -21,7 +21,7 @@ use super::schema::commits;
 #[table_name="commits"]
 pub struct NewCommit<'a> {
     pub sha: &'a str,
-    pub release_id: Option<i32>,
+    pub release_id: i32,
     pub author_name: &'a str,
     pub author_email: &'a str,
 }

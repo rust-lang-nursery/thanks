@@ -4,4 +4,4 @@ CREATE TABLE releases (
 );
 
 ALTER TABLE commits
-ADD release_id integer
+ADD release_id integer NOT NULL

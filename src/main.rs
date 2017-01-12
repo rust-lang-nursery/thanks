@@ -92,7 +92,7 @@ impl Service for Contributors {
                 names.sort();
                 names.dedup();
 
-                let names: Vec<_> = names.into_iter().map(|n| Value::String(n)).collect();
+                let names: Vec<_> = names.into_iter().map(Value::String).collect();
 
                 data.insert("count".to_string(), Value::U64(names.len() as u64));
                 data.insert("names".to_string(), Value::Array(names));

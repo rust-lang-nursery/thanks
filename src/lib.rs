@@ -43,7 +43,7 @@ pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str
 
 use self::models::{Release, NewRelease};
 
-pub fn create_release<'a>(conn: &PgConnection, version: &'a str) -> Release {
+pub fn create_release(conn: &PgConnection, version: &str) -> Release {
     use schema::releases;
 
     let new_release = NewRelease {

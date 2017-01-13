@@ -31,9 +31,9 @@ up with your local postgres install.
 Build it:
 
 ```bash
-$ cargo build
 $ cargo install diesel_cli
 $ diesel setup
+$ cargo build
 ```
 
 Clone down the Rust repository somewhere. I put mine in `~/src`:

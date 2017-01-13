@@ -116,8 +116,15 @@ impl Service for Contributors {
 
                     let connection = contributors::establish_connection();
 
-                    let release: Release = releases.filter(version.eq(release_name))
-                                                   .first(&connection).unwrap();
+                    let release: Release = match releases.filter(version.eq(release_name))
+                                                   .first(&connection) {
+                        Ok(release) => release,
+                        Err(_) => {
+                            return ::futures::finished(Response::new()
+                                .with_status(StatusCode::NotFound));
+                        },
+                    };
+
 
                     let results: Vec<Commit> = Commit::belonging_to(&release).load(&connection).unwrap();
 

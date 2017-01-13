@@ -1,4 +1,4 @@
-#[macro_use]
+
 extern crate diesel;
 
 extern crate dotenv;
@@ -54,7 +54,8 @@ impl Service for Contributors {
                 use contributors::models::Release;
 
                 let connection = contributors::establish_connection();
-                let results = releases.filter(version.ne("master")).load::<Release>(&connection)
+                let results = releases.filter(version.ne("master"))
+                    .load::<Release>(&connection)
                     .expect("Error loading releases");
 
                 let results: Vec<_> = results.into_iter()

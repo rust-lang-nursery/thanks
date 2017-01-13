@@ -85,7 +85,8 @@ fn main() {
     // due to the way git works, this will not create any commits that were backported
     // so we'll do those below
     let git_log = Command::new("git")
-        .current_dir(path)
+        .arg("-C")
+        .arg(path)
         .arg("--no-pager")
         .arg("log")
         .arg(r#"--format=%H %ae %an"#)
@@ -158,7 +159,8 @@ fn assign_commits(release_name: &str, previous_release: &str) {
     println!("Assigning commits to release {}", release_name);
 
     let git_log = Command::new("git")
-        .current_dir(&path)
+        .arg("-C")
+        .arg(&path)
         .arg("--no-pager")
         .arg("log")
         .arg(r#"--format=%H"#)
@@ -195,7 +197,8 @@ fn assign_commits(release_name: &str, previous_release: &str) {
             },
             Err(_) => {
                 let git_log = Command::new("git")
-                    .current_dir(&path)
+                    .arg("-C")
+                    .arg(&path)
                     .arg("--no-pager")
                     .arg("show")
                     .arg(r#"--format=%H %ae %an"#)

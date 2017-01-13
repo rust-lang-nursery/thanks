@@ -22,8 +22,11 @@ $ cd contributors
 Set up the database URL. Replace this with whatever credentials you need.
 
 ```bash
-$ echo DATABASE_URL=postgres://postgres:postgres@localhost/rust_contributors > .env
+$ cp .env.sample .env
 ```
+
+Inspect it to make sure it's set up the right way; only you can know what's
+up with your local postgres install.
 
 Build it:
 

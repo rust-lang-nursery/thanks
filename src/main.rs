@@ -152,7 +152,7 @@ fn main() {
     dotenv::dotenv().ok();
 
 
-    let addr = format!("127.0.0.1:{}", env::args().nth(1).unwrap_or(String::from("1337"))).parse().unwrap();
+    let addr = format!("0.0.0.0:{}", env::args().nth(1).unwrap_or(String::from("1337"))).parse().unwrap();
 
     let (listening, server) = Server::standalone(|tokio| {
         Server::http(&addr, tokio)?

@@ -54,12 +54,11 @@ impl Service for Contributors {
                 use contributors::models::Release;
 
                 let connection = contributors::establish_connection();
-                let results = releases.load::<Release>(&connection)
+                let results = releases.filter(version.ne("master")).load::<Release>(&connection)
                     .expect("Error loading releases");
 
                 let results: Vec<_> = results.into_iter()
                     .rev()
-                    .filter(|r| r.version != "master") // filter out master, we want it on top
                     .map(|r| Value::String(r.version))
                     .collect();
 

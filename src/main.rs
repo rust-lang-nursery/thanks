@@ -26,6 +26,7 @@ use hyper::server::{Server, Service, Request, Response};
 use handlebars::Handlebars;
 
 use std::collections::BTreeMap;
+use std::env;
 use std::io::prelude::*;
 use std::fs::File;
 
@@ -150,7 +151,8 @@ impl Service for Contributors {
 fn main() {
     dotenv::dotenv().ok();
 
-    let addr = "127.0.0.1:1337".parse().unwrap();
+
+    let addr = env::var("PORT").unwrap_or(String::from("127.0.0.1:1337")).parse().unwrap();
     let (listening, server) = Server::standalone(|tokio| {
         Server::http(&addr, tokio)?
             .handle(|| Ok(Contributors), tokio)

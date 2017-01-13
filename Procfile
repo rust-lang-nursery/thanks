@@ -1,1 +1,1 @@
-web: ./target/release/contributors
+web: ./target/release/contributors $PORT

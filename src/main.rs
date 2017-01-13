@@ -151,7 +151,6 @@ impl Service for Contributors {
 fn main() {
     dotenv::dotenv().ok();
 
-
     let addr = format!("0.0.0.0:{}", env::args().nth(1).unwrap_or(String::from("1337"))).parse().unwrap();
 
     let (listening, server) = Server::standalone(|tokio| {

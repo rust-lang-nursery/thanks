@@ -89,18 +89,15 @@ impl Service for Contributors {
                     f.read_to_string(&mut source).unwrap();
 
                     use contributors::schema::commits::dsl::*;
-                    use contributors::models::Commit;
 
                     let connection = contributors::establish_connection();
 
-                    let results: Vec<Commit> = commits.load::<Commit>(&connection).unwrap();
+                    let mut names: Vec<String> = commits.select(author_name).distinct().load(&connection).unwrap();
 
-                    let mut names: Vec<_> = results.into_iter().map(|c| c.author_name).collect();
-
-                    // lol i am a bad programmer and am not doing this in the db.
-                    // it's fine, but this is a good FIXME
-                    names.sort();
-                    names.dedup();
+                    // it'd be better to do this in the db
+                    // but Postgres doesn't do Unicode collation correctly on OSX
+                    // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
+                    contributors::inaccurate_sort(&mut names);
 
                     let names: Vec<_> = names.into_iter().map(Value::String).collect();
 

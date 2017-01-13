@@ -3,9 +3,6 @@ authors = ["Steve Klabnik <steve@steveklabnik.com>"]
 name = "contributors"
 version = "0.1.0"
 
-[profile.release]
-debug = true
-
 [dependencies]
 futures = "0.1.7"
 reqwest = "0.2.0"

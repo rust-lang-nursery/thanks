@@ -108,6 +108,7 @@ impl Service for Contributors {
                     f.read_to_string(&mut source).unwrap();
 
                     use contributors::schema::releases::dsl::*;
+                    use contributors::schema::commits::dsl::*;
                     use contributors::models::Release;
                     use contributors::models::Commit;
 
@@ -123,14 +124,10 @@ impl Service for Contributors {
                     };
 
 
-                    let results: Vec<Commit> = Commit::belonging_to(&release).load(&connection).unwrap();
+                    let mut names: Vec<String> = Commit::belonging_to(&release)
+                        .select(author_name).distinct().load(&connection).unwrap();
 
-                    let mut names: Vec<_> = results.into_iter().map(|c| c.author_name).collect();
-
-                    // lol i am a bad programmer and am not doing this in the db.
-                    // it's fine, but this is a good FIXME
-                    names.sort();
-                    names.dedup();
+                    contributors::inaccurate_sort(&mut names);
 
                     let names: Vec<_> = names.into_iter().map(Value::String).collect();
 

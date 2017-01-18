@@ -111,7 +111,7 @@ pub fn inaccurate_sort(strings: &mut Vec<String>) {
 }
 
 pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
-    let connection =    establish_connection();
+    let connection = establish_connection();
 
     println!("Assigning commits to release {}", release_name);
 
@@ -136,7 +136,6 @@ pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
 
         println!("Assigning commit {} to release {}", sha_name, release_name);
 
-        //contributors::create_commit(&connection, &sha, &author_name, &author_email, &first_release);
         use schema::releases::dsl::*;
         use models::Release;
         use schema::commits::dsl::*;
@@ -179,6 +178,5 @@ pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
                 create_commit(&connection, &the_sha, &the_author_name, &the_author_email, &the_release);
             },
         };
-
     }
 }

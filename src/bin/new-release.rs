@@ -4,15 +4,15 @@ extern crate diesel;
 extern crate clap;
 
 use diesel::prelude::*;
-use clap::{App,Arg};
+use clap::{App, Arg};
 
 fn main() {
     let matches = App::new("new-release")
-        .about("update contributors from a new release")
+        .about("create a new release")
         .arg(Arg::with_name("filepath")
             .short("p")
             .long("path")
-            .help("filepath of rust src folder")
+            .help("filepath of the rust source code")
             .takes_value(true)
             .required(true))
         .get_matches();

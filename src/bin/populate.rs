@@ -23,7 +23,7 @@ extern crate clap;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
-use clap::{App,Arg};
+use clap::{App, Arg};
 
 use std::env;
 use std::process::Command;
@@ -39,11 +39,11 @@ pub fn establish_connection() -> PgConnection {
 
 fn main() {
     let matches = App::new("populate")
-        .about("populate all contributors from")
+        .about("initialize the database")
         .arg(Arg::with_name("filepath")
             .short("p")
             .long("path")
-            .help("filepath of rust src folder")
+            .help("filepath of the rust source code")
             .takes_value(true)
             .required(true))
         .get_matches();

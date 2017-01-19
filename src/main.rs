@@ -15,8 +15,6 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
-extern crate itertools;
-
 extern crate contributors;
 
 use diesel::prelude::*;
@@ -33,8 +31,6 @@ use std::io::prelude::*;
 use std::fs::File;
 
 use serde_json::value::Value;
-
-use itertools::Itertools;
 
 struct Contributors;
 
@@ -93,27 +89,23 @@ impl Service for Contributors {
                     f.read_to_string(&mut source).unwrap();
 
                     use contributors::schema::commits::dsl::*;
-                    use contributors::models::Commit;
+                    use diesel::expression::dsl::sql;
+                    use diesel::types::BigInt;
 
                     let connection = contributors::establish_connection();
 
-                    // It's possible to do this in Postgres with
-                    // SELECT author_name, COUNT(author_name) as commit_count FROM commits GROUP BY author_name ORDER BY commit_count DESC;
-                    // but it doesn't look like Diesel supports that
-                    let mut results: Vec<Commit> = commits.load(&connection).unwrap();
-
-                    results.sort_by_key(|c| c.author_name.clone());
-                    let grouped = results.iter().group_by(|c| c.author_name.clone());
-                    let mut scores: Vec<_> = grouped.into_iter()
-                      .map(|(author, by_author)| (author, by_author.count())).collect();
-
-                    scores.sort_by_key(|&(_, score)| score);
-                    scores.reverse();
+                    let scores: Vec<_> =
+                        commits
+                        .select((author_name, sql::<BigInt>("COUNT(author_name) AS author_count")))
+                        .group_by(author_name)
+                        .order(sql::<BigInt>("author_count").desc())
+                        .load(&connection)
+                        .unwrap();
 
                     let scores: Vec<_> = scores.into_iter().map(|(author, score)| {
                         let mut json_score: BTreeMap<String, Value> = BTreeMap::new();
                         json_score.insert("author".to_string(), Value::String(author));
-                        json_score.insert("commits".to_string(), Value::U64(score as u64));
+                        json_score.insert("commits".to_string(), Value::I64(score));
 
                         Value::Object(json_score)
                     }).collect();

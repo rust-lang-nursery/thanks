@@ -9,6 +9,7 @@ dependencies = [
  "futures 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "handlebars 0.24.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.11.0-a.0 (git+https://github.com/hyperium/hyper?branch=tokio)",
+ "itertools 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.22 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -154,6 +155,11 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "either"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "error-chain"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -261,6 +267,14 @@ dependencies = [
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-normalization 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "itertools"
+version = "0.5.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "either 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -891,6 +905,7 @@ dependencies = [
 "checksum diesel_codegen_shared 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "28f681b07da462c6146886bef5417a857dd8f83b23c2e6011e4875c3c4e161c8"
 "checksum dotenv 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "eea1395d2df3b5344dc577809296d9578303296e8d105c408aa80ed67d598ef1"
 "checksum dtoa 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0dd841b58510c9618291ffa448da2e4e0f699d984d436122372f446dae62263d"
+"checksum either 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3d2b503c86dad62aaf414ecf2b8c527439abedb3f8d812537f0b12bfd6f32a91"
 "checksum error-chain 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)" = "318cb3c71ee4cdea69fdc9e15c173b245ed6063e1709029e8fd32525a881120f"
 "checksum futures 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "3e0b237aed5d8b61bc7d6ee1b8ebd719d0a934a38d363c5e56daf34bb634d9b2"
 "checksum futures-cpupool 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "bb982bb25cd8fa5da6a8eb3a460354c984ff1113da82bcb4f0b0862b5795db82"
@@ -901,6 +916,7 @@ dependencies = [
 "checksum hyper 0.11.0-a.0 (git+https://github.com/hyperium/hyper?branch=tokio)" = "<none>"
 "checksum hyper 0.9.14 (registry+https://github.com/rust-lang/crates.io-index)" = "bcb3fc65554155980167fb821d05c7c66177f92464976c0b676a19d9e03387a7"
 "checksum idna 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1053236e00ce4f668aeca4a769a09b3bf5a682d802abd6f3cb39374f6b162c11"
+"checksum itertools 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)" = "c6946da472dbbcbd98c049050e8e587cc4ee26985992e582b1d74a35cb8a7020"
 "checksum itoa 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ae3088ea4baeceb0284ee9eea42f591226e6beaecf65373e41b38d95a1b8e7a1"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
 "checksum language-tags 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a91d884b6667cd606bb5a69aa0c99ba811a115fc68915e7056ec08a46e93199a"

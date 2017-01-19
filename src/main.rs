@@ -21,7 +21,7 @@ use diesel::prelude::*;
 
 use hyper::{Get, StatusCode};
 use hyper::header::ContentType;
-use hyper::server::{Server, Service, Request, Response};
+use hyper::server::{Http, Service, Request, Response};
 
 use handlebars::Handlebars;
 
@@ -42,7 +42,7 @@ impl Service for Contributors {
 
     fn call(&self, req: Request) -> Self::Future {
         ::futures::finished(match (req.method(), req.path()) {
-            (&Get, Some("/")) => {
+            (&Get, "/") => {
                 let handlebars = Handlebars::new();
 
                 let mut f = File::open("templates/index.hbs").unwrap();
@@ -71,7 +71,7 @@ impl Service for Contributors {
                     .with_header(ContentType::html())
                     .with_body(handlebars.template_render(&source, &data).unwrap())
             },
-            (&Get, Some(path)) => {
+            (&Get, path) => {
                 let handlebars = Handlebars::new();
 
                 let mut source = String::new();
@@ -154,11 +154,8 @@ fn main() {
 
     let addr = format!("0.0.0.0:{}", env::args().nth(1).unwrap_or(String::from("1337"))).parse().unwrap();
 
-    let (listening, server) = Server::standalone(|tokio| {
-        Server::http(&addr, tokio)?
-            .handle(|| Ok(Contributors), tokio)
-    }).unwrap();
-    println!("Listening on http://{}", listening);
-    server.run();
+    let server = Http::new().bind(&addr, || Ok(Contributors)).unwrap();
+    println!("Listening on http://{}", server.local_addr().unwrap());
+    server.run().unwrap();
 }
 

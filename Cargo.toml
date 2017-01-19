@@ -20,5 +20,5 @@ version = "0.24.1"
 features = ["serde_type"]
 
 [dependencies.hyper]
-branch = "tokio"
+branch = "master"
 git = "https://github.com/hyperium/hyper"

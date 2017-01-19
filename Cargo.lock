@@ -8,7 +8,7 @@ dependencies = [
  "dotenv 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "handlebars 0.24.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.11.0-a.0 (git+https://github.com/hyperium/hyper?branch=tokio)",
+ "hyper 0.11.0-a.0 (git+https://github.com/hyperium/hyper)",
  "reqwest 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.22 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -235,7 +235,7 @@ dependencies = [
 [[package]]
 name = "hyper"
 version = "0.11.0-a.0"
-source = "git+https://github.com/hyperium/hyper?branch=tokio#35e23b78d569122cadda4f4481204b6ad0a9c6fa"
+source = "git+https://github.com/hyperium/hyper#f45e9c8e4fcacc2bd7fed84ef0df6d2fcf8c1134"
 dependencies = [
  "futures 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-cpupool 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -898,7 +898,7 @@ dependencies = [
 "checksum handlebars 0.24.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e6971d7072097815b5b4af95cb03f280c297801df85d298fa8d5719b3b49f88a"
 "checksum hpack 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d2da7d3a34cf6406d9d700111b8eafafe9a251de41ae71d8052748259343b58"
 "checksum httparse 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a6e7a63e511f9edffbab707141fbb8707d1a3098615fb2adbd5769cdfcc9b17d"
-"checksum hyper 0.11.0-a.0 (git+https://github.com/hyperium/hyper?branch=tokio)" = "<none>"
+"checksum hyper 0.11.0-a.0 (git+https://github.com/hyperium/hyper)" = "<none>"
 "checksum hyper 0.9.14 (registry+https://github.com/rust-lang/crates.io-index)" = "bcb3fc65554155980167fb821d05c7c66177f92464976c0b676a19d9e03387a7"
 "checksum idna 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1053236e00ce4f668aeca4a769a09b3bf5a682d802abd6f3cb39374f6b162c11"
 "checksum itoa 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ae3088ea4baeceb0284ee9eea42f591226e6beaecf65373e41b38d95a1b8e7a1"

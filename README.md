@@ -47,7 +47,7 @@ Import data from the repo:
 
 ```bash
 $ cd - # go back to our app
-$ cargo run --bin populate -- ~/src/rust # or whever you put the Rust source
+$ cargo run --bin populate -- --path ~/src/rust # or whever you put the Rust source
 ```
 
 This will take a few minutes. At the time of writing, Rust has about 61,000
@@ -79,7 +79,7 @@ $ cargo run --bin the-big-red-button
 When it's time for a new release,
 
 ```bash
-$ cargo run --bin new-release -- ~/src/rust # or wherever your Rust is
+$ cargo run --bin new-release -- --path ~/src/rust # or wherever your Rust is
 ```
 
 As often as you want to update, run

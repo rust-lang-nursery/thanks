@@ -120,6 +120,7 @@ pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
         .arg(&path)
         .arg("--no-pager")
         .arg("log")
+        .arg("--use-mailmap")
         .arg(r#"--format=%H"#)
         .arg(&format!("{}...{}", previous_release, release_name))
         .output()

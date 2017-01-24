@@ -102,6 +102,7 @@ fn main() {
         .arg(path)
         .arg("--no-pager")
         .arg("log")
+        .arg("--use-mailmap")
         .arg(r#"--format=%H %ae %an"#)
         .arg("master")
         .output()

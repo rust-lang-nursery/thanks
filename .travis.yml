@@ -1,15 +1,18 @@
 language: rust
 rust:
-  - nightly
+- nightly
 cache: cargo
 addons:
   postgresql: '9.4'
 before_script:
-  - (cargo install diesel_cli || true)
-  - export PATH=$HOME/.cargo/bin:$PATH # not sure why I need this...
-  - cp .env.sample .env
-  - diesel setup
+- "(cargo install diesel_cli || true)"
+- export PATH=$HOME/.cargo/bin:$PATH
+- cp .env.sample .env
+- diesel setup
 deploy:
   provider: heroku
   api_key:
-    secure: EWct7v0H0ghgnbpes3J0vbZGKfDjGvZXEl+0SCUs2NGFZSx/nuNK/+JZGSHBM4BiJesGKIoyxtRZjETS6AZj4y8+Ew/42phLIxPRxA8iyKe5onGM26paQzlNCtt23coKseIBBvno7apOkTm2fDGtqlyCnRsC1oN4oy5RboBThD0l9McSYOz0oQ9mPX7/ZI5KkI+4VoYdHn78MsRT6Qym5C5zhH1GtFB0JOgERpjwSZ1yALqN5672u34irac8Udx3F3+vTLD9HVW5WjrEq+ayyNkxuP8wJnn8moIFjTXJH5T8qw8dQyyCB5kmCGJmME/H6Z8SGqsfUCM1GIf3ZjDODQO0XAPxbhThTQTJMwthja0iafkX171nDQBm0BgAV6eOkZ4LfzvVP+dQCvAAT6j6+TlccOEajW2ZYQAeiF4EdxX7+rethInNQrjvvDU9VMqESuKsFKfkSpiEQIqsfFnfIkeBRtJSAZCWIsWYhl5xSw1YCE4mg1okxP/aiEEKYL/lyLvuBWI0x7ra4IiLasvCdXe5Fx2NpcoqLybyQe6SeLA8QZ7wgN737kBKF1csKiSnMRMRLbZvVR86J0I4lUjPscHX6nuY/YWypEl9Z4wWhZS0Oilzmo20qrul2lp1XG5dFPOPb89iO8u7yfhkn3+szThVsD/vNGk4HDdHQBDQsTo=
+    secure: nRD5oH/doh1vsNboJ0sw2xsex7iTseGIlUe4rQkDgTMHeaUUzyde14ytzfqGvSWYEyf4Ecz97pvT8q5BuKO2qIFCefn4jfroCgCV3auNgPB+SVoEVvdae85VhqYS/K5lsF/PB4rJJTTPUu9og4SQrIII13kgGsaZ53j+6KsMxmSOMxo1OQ4naFrG/vFYELMLFOgbDSEdEYgz+4qolm4QSa4NHb0MU2a9IUFMK3BzLA9DjRxafL5V9KHYw9+HjYNyl1iRN3GLIKQh3Gungcz5U7GyepH648exEIzxtP6ldN5kfvXXyByc7nr+CzGCGZ3Q2PIKaCOhhEjiH6O0EnLB3B7yJdy2G2/eMvBHoNU8uAQ2afaaStIKFQFpcBPORvLOCizJY7/IlAkTwGAosG1Iz1ax2hc9C9D43WKPPfmSen639BHbbrUkGyjQWNME6UOqm5/fLdiE222tae9RVdj5DMtO3jDH3FIZz55yNgFgBsyM4bSq2ssw0SZ6D5PWE91OY+gFi3718PWv6TJKz5p0pJAjDo6UxXWO9BScA0iC2DFD+RjVkdVAQ/zaoLao+mXtXhw6bvVm35/8Rdd3awOPoLi5lKu+X75GEP9RZU8oykeWL/q2aVQfb5NdMz7Mmw0O8B8jGqmuqaEyDZ/1y+GofO0kuH4goE806zOQX/MdH+E=
+  app: rust-contributors
+  on:
+    repo: steveklabnik/contributors

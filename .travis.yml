@@ -5,7 +5,8 @@ cache: cargo
 addons:
   postgresql: '9.4'
 before_script:
-  - cargo install diesel_cli
+  - (cargo install diesel_cli || true)
+  - export PATH=$HOME/.cargo/bin:$PATH # not sure why I need this...
   - cp .env.sample .env
   - diesel setup
   - diesel migration run

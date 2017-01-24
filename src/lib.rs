@@ -15,6 +15,7 @@ extern crate unicode_normalization;
 
 use std::env;
 use std::cmp::Ordering;
+use std::process::Command;
 
 pub mod schema;
 pub mod models;
@@ -107,4 +108,75 @@ fn str_cmp(a_raw: &str, b_raw: &str) -> Ordering {
 // TODO: switch this out for an implementation of the Unicode Collation Algorithm
 pub fn inaccurate_sort(strings: &mut Vec<String>) {
     strings.sort_by(|a, b| str_cmp(&a, &b));
+}
+
+pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
+    let connection = establish_connection();
+
+    println!("Assigning commits to release {}", release_name);
+
+    let git_log = Command::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("--no-pager")
+        .arg("log")
+        .arg(r#"--format=%H"#)
+        .arg(&format!("{}...{}", previous_release, release_name))
+        .output()
+        .expect("failed to execute process");
+
+    let log = git_log.stdout;
+    let log = String::from_utf8(log).unwrap();
+
+    for sha_name in log.split('\n') {
+        // there is a last, blank line
+        if sha_name == "" {
+            continue;
+        }
+
+        println!("Assigning commit {} to release {}", sha_name, release_name);
+
+        use schema::releases::dsl::*;
+        use models::Release;
+        use schema::commits::dsl::*;
+        use models::Commit;
+
+        let the_release = releases.filter(version.eq(&release_name)).first::<Release>(&connection).expect("could not find release");
+
+        // did we make this commit earlier? If so, update it. If not, create it
+        match commits.filter(sha.eq(&sha_name)).first::<Commit>(&connection) {
+            Ok(the_commit) => {
+                diesel::update(commits.find(the_commit.id))
+                    .set(release_id.eq(the_release.id))
+                    .get_result::<Commit>(&connection)
+                    .expect(&format!("Unable to update commit {}", the_commit.id));
+            },
+            Err(_) => {
+                let git_log = Command::new("git")
+                    .arg("-C")
+                    .arg(&path)
+                    .arg("--no-pager")
+                    .arg("show")
+                    .arg(r#"--format=%H %ae %an"#)
+                    .arg(&sha_name)
+                    .output()
+                    .expect("failed to execute process");
+
+                let log = git_log.stdout;
+                let log = String::from_utf8(log).unwrap();
+
+                let log_line = log.split('\n').nth(0).unwrap();
+
+                let mut split = log_line.splitn(3, ' ');
+
+                let the_sha = split.next().unwrap();
+                let the_author_email = split.next().unwrap();
+                let the_author_name = split.next().unwrap();
+
+                println!("Creating commit {} for release {}", the_sha, the_release.version);
+
+                create_commit(&connection, &the_sha, &the_author_name, &the_author_email, &the_release);
+            },
+        };
+    }
 }

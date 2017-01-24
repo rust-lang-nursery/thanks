@@ -1,6 +1,12 @@
 language: rust
 rust:
   - nightly
+cache: cargo
+addons:
+  postgresql: '9.4'
+before_script:
+  - cargo install diesel_cli
+  - diesel setup
 deploy:
   api_key:
     secure: EWct7v0H0ghgnbpes3J0vbZGKfDjGvZXEl+0SCUs2NGFZSx/nuNK/+JZGSHBM4BiJesGKIoyxtRZjETS6AZj4y8+Ew/42phLIxPRxA8iyKe5onGM26paQzlNCtt23coKseIBBvno7apOkTm2fDGtqlyCnRsC1oN4oy5RboBThD0l9McSYOz0oQ9mPX7/ZI5KkI+4VoYdHn78MsRT6Qym5C5zhH1GtFB0JOgERpjwSZ1yALqN5672u34irac8Udx3F3+vTLD9HVW5WjrEq+ayyNkxuP8wJnn8moIFjTXJH5T8qw8dQyyCB5kmCGJmME/H6Z8SGqsfUCM1GIf3ZjDODQO0XAPxbhThTQTJMwthja0iafkX171nDQBm0BgAV6eOkZ4LfzvVP+dQCvAAT6j6+TlccOEajW2ZYQAeiF4EdxX7+rethInNQrjvvDU9VMqESuKsFKfkSpiEQIqsfFnfIkeBRtJSAZCWIsWYhl5xSw1YCE4mg1okxP/aiEEKYL/lyLvuBWI0x7ra4IiLasvCdXe5Fx2NpcoqLybyQe6SeLA8QZ7wgN737kBKF1csKiSnMRMRLbZvVR86J0I4lUjPscHX6nuY/YWypEl9Z4wWhZS0Oilzmo20qrul2lp1XG5dFPOPb89iO8u7yfhkn3+szThVsD/vNGk4HDdHQBDQsTo=

@@ -89,20 +89,29 @@ impl Service for Contributors {
                     f.read_to_string(&mut source).unwrap();
 
                     use contributors::schema::commits::dsl::*;
+                    use diesel::expression::dsl::sql;
+                    use diesel::types::BigInt;
 
                     let connection = contributors::establish_connection();
 
-                    let mut names: Vec<String> = commits.select(author_name).distinct().load(&connection).unwrap();
+                    let scores: Vec<_> =
+                        commits
+                        .select((author_name, sql::<BigInt>("COUNT(author_name) AS author_count")))
+                        .group_by(author_name)
+                        .order(sql::<BigInt>("author_count").desc())
+                        .load(&connection)
+                        .unwrap();
 
-                    // it'd be better to do this in the db
-                    // but Postgres doesn't do Unicode collation correctly on OSX
-                    // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
-                    contributors::inaccurate_sort(&mut names);
+                    let scores: Vec<_> = scores.into_iter().map(|(author, score)| {
+                        let mut json_score: BTreeMap<String, Value> = BTreeMap::new();
+                        json_score.insert("author".to_string(), Value::String(author));
+                        json_score.insert("commits".to_string(), Value::I64(score));
 
-                    let names: Vec<_> = names.into_iter().map(Value::String).collect();
+                        Value::Object(json_score)
+                    }).collect();
 
-                    data.insert("count".to_string(), Value::U64(names.len() as u64));
-                    data.insert("names".to_string(), Value::Array(names));
+                    data.insert("count".to_string(), Value::U64(scores.len() as u64));
+                    data.insert("scores".to_string(), Value::Array(scores));
                 } else {
                     let mut f = File::open("templates/release.hbs").unwrap();
                     f.read_to_string(&mut source).unwrap();
@@ -123,7 +132,9 @@ impl Service for Contributors {
                         },
                     };
 
-
+                    // it'd be better to do this in the db
+                    // but Postgres doesn't do Unicode collation correctly on OSX
+                    // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
                     let mut names: Vec<String> = Commit::belonging_to(&release)
                         .select(author_name).distinct().load(&connection).unwrap();
 

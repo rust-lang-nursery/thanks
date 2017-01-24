@@ -23,10 +23,18 @@
 
     <p>We have had {{ count }} individuals contribute to Rust. Thank you so much!</p>
     
-    <ul>
-    {{#each names as |name| }}
-        <li>{{ name }}</li>
-    {{/each}}
-    </ul>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Commits</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each scores as |score| }}
+            <tr><td>{{ score.author }}</td><td>{{ score.commits }}</td></tr>
+        {{/each}}
+      </tbody>
+    </table>
   </body>
 </html>

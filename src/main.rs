@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate diesel;
 
 extern crate dotenv;
@@ -11,8 +10,6 @@ extern crate hyper;
 extern crate reqwest;
 
 extern crate serde;
-#[macro_use]
-extern crate serde_derive;
 extern crate serde_json;
 
 extern crate contributors;

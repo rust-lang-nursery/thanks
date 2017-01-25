@@ -20,6 +20,7 @@ use std::process::Command;
 pub mod schema;
 pub mod models;
 
+use self::models::{Project, NewProject};
 use self::models::{Commit, NewCommit};
 use self::models::{Release, NewRelease};
 
@@ -49,12 +50,27 @@ pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str
         .expect("Error saving new commit")
 }
 
+pub fn create_project(conn: &PgConnection, name: &str, path: &str, github_link: &str) -> Project {
+    use schema::projects;
 
-pub fn create_release(conn: &PgConnection, version: &str) -> Release {
+    let new_project = NewProject {
+        name: name,
+        path: path,
+        github_link: github_link
+    };
+
+    diesel::insert(&new_project).into(projects::table)
+        .get_result(conn)
+        .expect("Error saving new project")
+}
+
+
+pub fn create_release(conn: &PgConnection, version: &str, project_id: i32) -> Release {
     use schema::releases;
 
     let new_release = NewRelease {
         version: version,
+        project_id: project_id,
     };
 
     diesel::insert(&new_release).into(releases::table)

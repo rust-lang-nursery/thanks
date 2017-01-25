@@ -11,8 +11,6 @@ before_script:
 - diesel setup
 deploy:
   provider: heroku
-  api_key:
-    secure: nRD5oH/doh1vsNboJ0sw2xsex7iTseGIlUe4rQkDgTMHeaUUzyde14ytzfqGvSWYEyf4Ecz97pvT8q5BuKO2qIFCefn4jfroCgCV3auNgPB+SVoEVvdae85VhqYS/K5lsF/PB4rJJTTPUu9og4SQrIII13kgGsaZ53j+6KsMxmSOMxo1OQ4naFrG/vFYELMLFOgbDSEdEYgz+4qolm4QSa4NHb0MU2a9IUFMK3BzLA9DjRxafL5V9KHYw9+HjYNyl1iRN3GLIKQh3Gungcz5U7GyepH648exEIzxtP6ldN5kfvXXyByc7nr+CzGCGZ3Q2PIKaCOhhEjiH6O0EnLB3B7yJdy2G2/eMvBHoNU8uAQ2afaaStIKFQFpcBPORvLOCizJY7/IlAkTwGAosG1Iz1ax2hc9C9D43WKPPfmSen639BHbbrUkGyjQWNME6UOqm5/fLdiE222tae9RVdj5DMtO3jDH3FIZz55yNgFgBsyM4bSq2ssw0SZ6D5PWE91OY+gFi3718PWv6TJKz5p0pJAjDo6UxXWO9BScA0iC2DFD+RjVkdVAQ/zaoLao+mXtXhw6bvVm35/8Rdd3awOPoLi5lKu+X75GEP9RZU8oykeWL/q2aVQfb5NdMz7Mmw0O8B8jGqmuqaEyDZ/1y+GofO0kuH4goE806zOQX/MdH+E=
   app: rust-contributors
   on:
-    repo: steveklabnik/contributors
+    repo: rust-lang-nursery/thanks

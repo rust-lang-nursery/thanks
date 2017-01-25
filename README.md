@@ -1,13 +1,14 @@
-# Contributors
+# Thanks!
 
 [![Build Status][status-img]][status]
 
-[status-img]: https://travis-ci.org/steveklabnik/contributors.svg?branch=master
-[status]: https://travis-ci.org/steveklabnik/contributors
+[status-img]: https://travis-ci.org/rust-lang-nursery/thanks.svg?branch=master
+[status]: https://travis-ci.org/rust-lang-nursery/thanks
 
 This web application shows people who have contributed to Rust.
 
-It's very bad right now, sorry. But it technically works!
+It's very bad right now, sorry. But it technically works! We're working on
+improving it.
 
 ## Setup
 
@@ -20,8 +21,8 @@ think.
 Clone it:
 
 ```bash
-$ git clone https://github.com/steveklabnik/contributors
-$ cd contributors
+$ git clone https://github.com/rust-lang-nursery/thanks
+$ cd thanks
 ```
 
 Set up the database URL. Replace this with whatever credentials you need.

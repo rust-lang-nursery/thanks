@@ -1,5 +1,10 @@
 # Contributors
 
+[![Build Status][status-img]][status]
+
+[status-img]: https://travis-ci.org/steveklabnik/contributors.svg?branch=master
+[status]: https://travis-ci.org/steveklabnik/contributors
+
 This web application shows people who have contributed to Rust.
 
 It's very bad right now, sorry. But it technically works!

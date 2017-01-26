@@ -6,22 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="public/styles/bootstrap.css"/>
     <link rel="stylesheet" href="public/styles/styles.css"/>
+    <link rel="stylesheet" href="public/styles/custom.css"/>
   </head>
-  <body>
-    <div class="container">
-      <div class="row">
-        <div class="col-md-6 col-md-offset-3">
-          <h1>Rust {{ release }} Contributors</h1>
+  <body class="container">
+    <div class="center">
+      <h1 class="jumbo">
+        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
+        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
+        Thanks!
+        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
+        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
+      </h1>
+      <h2>Rust {{ release }} Contributors</h2>
 
-          <p>We had {{ count }} individuals contribute to {{ release }}. Thank you so much!</p>
+      <p>We had {{ count }} individuals contribute to {{ release }}. Thank you so much!</p>
     
-          <ul>
-          {{#each names as |name| }}
-            <li>{{ name }}</li>
-          {{/each}}
-          </ul>
-        </div>
-      </div>
+      <ul>
+        {{#each names as |name| }}
+          <li>{{ name }}</li>
+        {{/each}}
+      </ul>
     </div>
   </body>
 </html>

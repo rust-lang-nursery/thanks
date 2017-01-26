@@ -10,15 +10,15 @@ name = "contributors"
 doc = false
 [[bin]]
 name = "populate"
-path = "src/bin/populate"
+path = "src/bin/populate.rs"
 doc = false
 [[bin]]
 name = "update-commit-db"
-path = "src/bin/update-commit-db"
+path = "src/bin/update-commit-db.rs"
 doc = false
 [[bin]]
 name = "the-big-red-button"
-path = "src/bin/the-big-red-button"
+path = "src/bin/the-big-red-button.rs"
 doc = false
 
 [dependencies]

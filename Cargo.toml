@@ -8,6 +8,18 @@ version = "0.1.0"
 [[bin]]
 name = "contributors"
 doc = false
+[[bin]]
+name = "populate"
+path = "bin/populate"
+doc = false
+[[bin]]
+name = "update-commit-db"
+path = "bin/update-commit-db"
+doc = false
+[[bin]]
+name = "the-big-red-button"
+path = "bin/the-big-red-button"
+doc = false
 
 [dependencies]
 futures = "0.1.7"

@@ -42,6 +42,12 @@ fn main() {
             .help("filepath of the source code")
             .takes_value(true)
             .required(true))
+        .arg(Arg::with_name("url_path")
+            .short("u")
+            .long("url")
+            .help("url path for this project")
+            .takes_value(true)
+            .required(true))
         .arg(Arg::with_name("name")
             .short("n")
             .long("name")
@@ -88,12 +94,16 @@ fn main() {
     let path = matches.value_of("filepath").unwrap();
     println!("Path to project's repo: {}", path);
 
+    // get url path
+    let url_path = matches.value_of("url_path").unwrap();
+    println!("URL path: {}", url_path);
+
     // get github link
     let link = matches.value_of("github_link").unwrap();
     println!("GitHub link: {}", link);
 
     // create project
-    let project = contributors::create_project(&connection, name, path, link);
+    let project = contributors::create_project(&connection, name, url_path, link);
 
     // Create releases
     // Infer them from git tags

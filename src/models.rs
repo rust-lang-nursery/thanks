@@ -3,7 +3,7 @@
 pub struct Project {
     pub id: i32,
     pub name: String,
-    pub path: String,
+    pub url_path: String,
     pub github_link: String,
 }
 
@@ -32,7 +32,7 @@ use super::schema::projects;
 #[table_name="projects"]
 pub struct NewProject<'a> {
     pub name: &'a str,
-    pub path: &'a str,
+    pub url_path: &'a str,
     pub github_link: &'a str,
 }
 use super::schema::commits;

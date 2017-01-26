@@ -50,12 +50,12 @@ pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str
         .expect("Error saving new commit")
 }
 
-pub fn create_project(conn: &PgConnection, name: &str, path: &str, github_link: &str) -> Project {
+pub fn create_project(conn: &PgConnection, name: &str, url_path: &str, github_link: &str) -> Project {
     use schema::projects;
 
     let new_project = NewProject {
         name: name,
-        path: path,
+        url_path: url_path,
         github_link: github_link
     };
 

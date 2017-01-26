@@ -44,7 +44,7 @@ impl Service for Contributors {
         println!("request!");
         if let Some(raw) = req.headers().get_raw("x-forwarded-proto") {
             println!("seen header: {:?}", raw);
-            if raw == &b"https"[..] {
+            if raw != &b"https"[..] {
                 println!("redirecting to https");
                 return ::futures::finished(
                     Response::new()

@@ -64,31 +64,32 @@ fn main() {
 
     let connection = establish_connection();
 
-    // check that we have no releases
-    {
-        use contributors::schema::releases::dsl::*;
-        use contributors::models::Release;
-        let first_release = releases.first::<Release>(&connection);
+    // get name
+    let project_name = matches.value_of("name").unwrap();
+    println!("Project name: {}", project_name);
 
-        if first_release.is_ok() {
-            panic!("you have releases in here already");
+    // check that we have no releases for given project
+    {
+        use contributors::models::Release;
+        use contributors::schema::projects::dsl::*;
+        use contributors::models::Project;
+
+        if let Ok(project) = projects.filter(name.eq(project_name)).load::<Project>(&connection) {
+            if let Ok(count) = Release::belonging_to(&project).count().first::<i64>(&connection) {
+                if count > 0 {
+                    panic!("you have releases in here already");
+                }
+            }
         }
     }
 
     // check that we have no commits
     {
-        use contributors::schema::commits::dsl::*;
-        use contributors::models::Commit;
-        let first_commit = commits.first::<Commit>(&connection);
-
-        if first_commit.is_ok() {
-            panic!("you have commits in here already");
-        }
+        // if there are no releases then there should be no commits as well
+        // so we may skip this check
+        // I consider changing release_id to NOT NULL since we assign commit
+        // to the first release on creation
     }
-
-    // get name
-    let name = matches.value_of("name").unwrap();
-    println!("Project name: {}", name);
 
     // get path to git repo
     let path = matches.value_of("filepath").unwrap();
@@ -103,7 +104,7 @@ fn main() {
     println!("GitHub name: {}", github_name);
 
     // create project
-    let project = contributors::create_project(&connection, name, url_path, github_name);
+    let project = contributors::create_project(&connection, project_name, url_path, github_name);
 
     // Create releases
     // Infer them from git tags
@@ -184,10 +185,10 @@ fn main() {
 
     // assign commits to their release
     let master = "master";
-    for (i, el1) in releases.iter().enumerate() {
-        let el2 = releases.get(i+1).unwrap_or(&master);
-        println!("({}, {})", el1, el2);
-        contributors::assign_commits(el2, el1, &path);
+    for (i, v1) in releases.iter().enumerate() {
+        let v2 = releases.get(i+1).unwrap_or(&master);
+        println!("({}, {})", v1, v2);
+        contributors::assign_commits(v2, v1, &path);
     }
 
     println!("Done!");

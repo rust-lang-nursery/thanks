@@ -17,7 +17,7 @@ extern crate contributors;
 use diesel::prelude::*;
 
 use hyper::{Get, StatusCode};
-use hyper::header::ContentType;
+use hyper::header::{ContentType, Location};
 use hyper::server::{Http, Service, Request, Response};
 
 use handlebars::Handlebars;
@@ -39,6 +39,18 @@ impl Service for Contributors {
     type Future = ::futures::Finished<Response, hyper::Error>;
 
     fn call(&self, req: Request) -> Self::Future {
+        // redirect to ssl
+        // from http://jaketrent.com/post/https-redirect-node-heroku/
+        if let Some(raw) = req.headers().get_raw("x-forwarded-proto") {
+            if raw == &b"https"[..] {
+                return ::futures::finished(
+                    Response::new()
+                    .with_header(Location(format!("https://thanks.rust-lang.org{}", req.path())))
+                    .with_status(StatusCode::MovedPermanently)
+                );
+            }
+        }
+
         ::futures::finished(match (req.method(), req.path()) {
             (&Get, "/") => {
                 let handlebars = Handlebars::new();

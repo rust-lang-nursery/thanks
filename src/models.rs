@@ -4,7 +4,7 @@ pub struct Project {
     pub id: i32,
     pub name: String,
     pub url_path: String,
-    pub github_link: String,
+    pub github_name: String,
 }
 
 #[derive(Debug,Identifiable,Queryable,Associations)]
@@ -33,7 +33,7 @@ use super::schema::projects;
 pub struct NewProject<'a> {
     pub name: &'a str,
     pub url_path: &'a str,
-    pub github_link: &'a str,
+    pub github_name: &'a str,
 }
 use super::schema::commits;
 

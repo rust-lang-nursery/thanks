@@ -54,9 +54,9 @@ fn main() {
             .help("name of the project")
             .takes_value(true)
             .required(true))
-        .arg(Arg::with_name("github_link")
-            .short("l")
-            .long("link")
+        .arg(Arg::with_name("github_name")
+            .short("g")
+            .long("github")
             .help("GitHub link of the project")
             .takes_value(true)
             .required(true))
@@ -98,12 +98,12 @@ fn main() {
     let url_path = matches.value_of("url_path").unwrap();
     println!("URL path: {}", url_path);
 
-    // get github link
-    let link = matches.value_of("github_link").unwrap();
-    println!("GitHub link: {}", link);
+    // get github name
+    let github_name = matches.value_of("github_name").unwrap();
+    println!("GitHub name: {}", github_name);
 
     // create project
-    let project = contributors::create_project(&connection, name, url_path, link);
+    let project = contributors::create_project(&connection, name, url_path, github_name);
 
     // Create releases
     // Infer them from git tags

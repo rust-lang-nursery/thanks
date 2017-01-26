@@ -41,14 +41,21 @@ impl Service for Contributors {
     fn call(&self, req: Request) -> Self::Future {
         // redirect to ssl
         // from http://jaketrent.com/post/https-redirect-node-heroku/
+        println!("request!");
         if let Some(raw) = req.headers().get_raw("x-forwarded-proto") {
+            println!("seen header: {:?}", raw);
             if raw == &b"https"[..] {
+                println!("redirecting to https");
                 return ::futures::finished(
                     Response::new()
                     .with_header(Location(format!("https://thanks.rust-lang.org{}", req.path())))
                     .with_status(StatusCode::MovedPermanently)
                 );
+            } else {
+                println!("not redirecting");
             }
+        } else {
+            println!("didn't see header");
         }
 
         ::futures::finished(match (req.method(), req.path()) {

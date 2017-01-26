@@ -26,6 +26,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::io::prelude::*;
 use std::fs::File;
+use std::path::Path;
 
 use serde_json::value::Value;
 
@@ -81,6 +82,7 @@ impl Service for Contributors {
                 data.insert("release".to_string(), Value::String(release_name.clone()));
 
                 if release_name == "all-time" {
+                    println!("all-time arm\npath: {}", path);
                     let mut f = File::open("templates/all-time.hbs").unwrap();
 
                     f.read_to_string(&mut source).unwrap();
@@ -109,7 +111,17 @@ impl Service for Contributors {
 
                     data.insert("count".to_string(), Value::U64(scores.len() as u64));
                     data.insert("scores".to_string(), Value::Array(scores));
+                // serve files in a public directory statically
+                } else if path.starts_with("/public") && Path::new(&path[1..]).exists() {
+                    println!("serve static arm\npath: {}", path);
+                    let mut f = File::open(&path[1..]).unwrap();
+                    let mut source = Vec::new();
+                    f.read_to_end(&mut source).unwrap();
+
+                    return ::futures::finished(Response::new()
+                      .with_body(source));
                 } else {
+                    println!("releases arm\npath: {}", path);
                     let mut f = File::open("templates/release.hbs").unwrap();
                     f.read_to_string(&mut source).unwrap();
 

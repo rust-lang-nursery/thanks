@@ -6,22 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="public/styles/bootstrap.css"/>
     <link rel="stylesheet" href="public/styles/styles.css"/>
+    <link rel="stylesheet" href="public/styles/custom.css"/>
   </head>
-  <body>
-    <div class="container">
-      <div class="row">
-        <div class="col-md-6 col-md-offset-3">
-          <h1>Rust Contributors</h1>
-          <p>Releases:</p> 
-          <ul>
-            <li><a href="all-time">All time</li>
-            <li><a href="master">Unreleased (on the master branch, not in a release yet)</li>
-            {{#each releases as |release| }}
-              <li><a href="{{ release }}">{{ release }}</li>
-            {{/each}}
-          </ul>
-        </div>
-      </div>
+  <body class="container">
+    <div class="center">
+      <h1 class="jumbo">
+        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
+        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
+        Thanks!
+        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
+        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
+      </h1>
+      <p>
+        Rust is a community project and is very thankful for the many community contributions it receives.
+      <p>
+      <h2>Releases:</h2> 
+      <ul>
+        <li><a href="all-time">All time</li>
+        <li><a href="master">Unreleased (on the master branch, not in a release yet)</a></li>
+        {{#each releases as |release| }}
+          <li><a href="{{ release }}">{{ release }}</a></li>
+        {{/each}}
+      </ul>
     </div>
   </body>
 </html>

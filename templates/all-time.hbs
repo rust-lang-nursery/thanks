@@ -6,30 +6,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="public/styles/bootstrap.css"/>
     <link rel="stylesheet" href="public/styles/styles.css"/>
+    <link rel="stylesheet" href="public/styles/custom.css"/>
   </head>
-  <body>
-     <div class="container">
-      <div class="row">
-        <div class="col-md-6 col-md-offset-3">
-          <h1>Rust All-time Contributors</h1>
+  <body class="container">
+    <div class="center">
+      <h1 class="jumbo">
+        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
+        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
+        Thanks!
+        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
+        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
+      </h1>
+      <h2>Rust All-time Contributors</h2>
 
-          <p>We have had {{ count }} individuals contribute to Rust. Thank you so much!</p>
+      <p>We have had {{ count }} individuals contribute to Rust. Thank you so much!</p>
     
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Commits</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{#each scores as |score| }}
-                <tr><td>{{ score.author }}</td><td>{{ score.commits }}</td></tr>
-              {{/each}}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Commits</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each scores as |score| }}
+            <tr><td>{{ score.author }}</td><td>{{ score.commits }}</td></tr>
+          {{/each}}
+        </tbody>
+      </table>
     </div>
   </body>
 </html>

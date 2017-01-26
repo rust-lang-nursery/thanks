@@ -4,29 +4,20 @@
     <meta charset="utf-8">
     <title>Rust Contributors</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style type="text/css">
-      body {
-        margin:40px auto;
-	max-width: 650px;
-	line-height: 1.6;
-	font-size: 18px;
-	color: #444;
-	padding: 0 10px;
-      }
-      h1, h2, h3 {
-        line-height: 1.2;
-      }
-    </style>
+    <link rel="stylesheet" href="public/styles/bootstrap.css"/>
+    <link rel="stylesheet" href="public/styles/styles.css"/>
   </head>
   <body>
-    <h1>Rust Contributors</h1>
-    <p>Releases:</p> 
-    <ul>
-      <li><a href="all-time">All time</li>
-      <li><a href="master">Unreleased (on the master branch, not in a release yet)</li>
-      {{#each releases as |release| }}
-      <li><a href="{{ release }}">{{ release }}</li>
-      {{/each}}
-    </ul>
+    <div class="container">
+      <h1>Rust Contributors</h1>
+      <p>Releases:</p> 
+      <ul>
+        <li><a href="all-time">All time</li>
+        <li><a href="master">Unreleased (on the master branch, not in a release yet)</li>
+        {{#each releases as |release| }}
+          <li><a href="{{ release }}">{{ release }}</li>
+        {{/each}}
+      </ul>
+    </div>
   </body>
 </html>

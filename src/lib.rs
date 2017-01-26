@@ -126,7 +126,7 @@ pub fn inaccurate_sort(strings: &mut Vec<String>) {
     strings.sort_by(|a, b| str_cmp(&a, &b));
 }
 
-pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
+pub fn assign_commits(release_name: &str, previous_release: &str, release_project_id: i32, path: &str) {
     let connection = establish_connection();
 
     println!("Assigning commits to release {}", release_name);
@@ -158,7 +158,11 @@ pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
         use schema::commits::dsl::*;
         use models::Commit;
 
-        let the_release = releases.filter(version.eq(&release_name)).first::<Release>(&connection).expect("could not find release");
+        let the_release = releases
+            .filter(version.eq(&release_name))
+            .filter(project_id.eq(release_project_id))
+            .first::<Release>(&connection)
+            .expect("could not find release");
 
         // did we make this commit earlier? If so, update it. If not, create it
         match commits.filter(sha.eq(&sha_name)).first::<Commit>(&connection) {

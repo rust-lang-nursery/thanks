@@ -161,7 +161,10 @@ fn main() {
     {
         use contributors::schema::releases::dsl::*;
         use contributors::models::Release;
-        let first_release = releases.first::<Release>(&connection).expect("No release found!");
+        let first_release = releases.
+            filter(project_id.eq(project.id)).
+            first::<Release>(&connection).
+            expect("No release found!");
 
         for log_line in log.split('\n') {
             // there is a last, blank line
@@ -188,7 +191,7 @@ fn main() {
     for (i, v1) in releases.iter().enumerate() {
         let v2 = releases.get(i+1).unwrap_or(&master);
         println!("({}, {})", v1, v2);
-        contributors::assign_commits(v2, v1, &path);
+        contributors::assign_commits(v2, v1, project.id, &path);
     }
 
     println!("Done!");

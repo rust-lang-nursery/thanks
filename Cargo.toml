@@ -8,6 +8,18 @@ version = "0.1.0"
 [[bin]]
 name = "contributors"
 doc = false
+[[bin]]
+name = "populate"
+path = "src/bin/populate.rs"
+doc = false
+[[bin]]
+name = "update-commit-db"
+path = "src/bin/update-commit-db.rs"
+doc = false
+[[bin]]
+name = "the-big-red-button"
+path = "src/bin/the-big-red-button.rs"
+doc = false
 
 [dependencies]
 futures = "0.1.7"
@@ -21,6 +33,8 @@ dotenv = "0.8.0"
 caseless = "0.1.2"
 unicode-normalization = "0.1.0"
 clap = "2.19.0"
+slog = "1.4.1"
+slog-term = "1.3.5"
 
 [dependencies.http]
 path = "./http"

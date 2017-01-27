@@ -23,7 +23,7 @@ use std::net::SocketAddr;
 use std::path::Path;
 
 pub struct Contributors {
-    routes: HashMap<String, Box<Fn(Request) -> ::futures::Finished<Response, hyper::Error> + Sync + Send + 'static>>,
+    routes: HashMap<String, fn(Request) -> ::futures::Finished<Response, hyper::Error>>,
 }
 
 impl Contributors {
@@ -33,10 +33,8 @@ impl Contributors {
         }
     }
 
-    pub fn add_route<F>(&mut self, path: &str, f: F) 
-        where F: Fn(Request) -> ::futures::Finished<Response, hyper::Error> + Sync + Send + 'static
-    {
-        self.routes.insert(path.to_string(), Box::new(f));
+    pub fn add_route(&mut self, path: &str, f: fn(Request) -> ::futures::Finished<Response, hyper::Error>) {
+        self.routes.insert(path.to_string(), f);
     }
 }
 

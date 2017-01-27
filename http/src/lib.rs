@@ -64,6 +64,16 @@ impl Service for Contributors {
         // first, we serve static files
         let path = req.path().to_string();
 
+        println!("PATH: {:?}", path);
+
+        // ... you trying to do something bad?
+        if path.contains("./") || path.contains("../") {
+            // GET OUT
+            return ::futures::finished(Response::new()
+                .with_header(ContentType::html())
+                .with_status(StatusCode::NotFound));
+        }
+
         if path.starts_with("/public") && Path::new(&path[1..]).exists() {
             println!("serve static arm\npath: {}", path);
             let mut f = File::open(&path[1..]).unwrap();

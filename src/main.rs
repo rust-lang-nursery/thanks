@@ -1,5 +1,4 @@
 extern crate contributors;
-extern crate diesel;
 
 extern crate dotenv;
 
@@ -8,9 +7,7 @@ extern crate futures;
 extern crate handlebars;
 
 extern crate hyper;
-extern crate reqwest;
 
-extern crate serde;
 extern crate serde_json;
 
 #[macro_use]

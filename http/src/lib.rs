@@ -1,16 +1,7 @@
-extern crate diesel;
-
-extern crate dotenv;
-
 extern crate futures;
-
-extern crate handlebars;
 
 extern crate hyper;
 extern crate reqwest;
-
-extern crate serde;
-extern crate serde_json;
 
 use hyper::StatusCode;
 use hyper::header::{ContentType, Location};

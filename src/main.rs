@@ -62,10 +62,7 @@ fn about(_: Request) -> futures::Finished<Response, hyper::Error> {
                        )
 }
 
-fn all_time(req: Request) -> futures::Finished<Response, hyper::Error> {
-    let path = req.path();
-    println!("all-time arm\npath: {}", path);
-
+fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
     let handlebars = Handlebars::new();
 
     let mut source = String::new();
@@ -102,7 +99,6 @@ fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
 
     data.insert("release".to_string(), Value::String(release_name.clone()));
 
-    println!("releases arm\npath: {}", path);
     let mut f = File::open("templates/release.hbs").unwrap();
     f.read_to_string(&mut source).unwrap();
 

@@ -47,9 +47,7 @@ impl Service for Contributors {
     fn call(&self, req: Request) -> Self::Future {
         // redirect to ssl
         // from http://jaketrent.com/post/https-redirect-node-heroku/
-        println!("request!");
         if let Some(raw) = req.headers().get_raw("x-forwarded-proto") {
-            println!("seen header: {:?}", raw);
             if raw != &b"https"[..] {
                 return ::futures::finished(
                     Response::new()
@@ -62,8 +60,6 @@ impl Service for Contributors {
         // first, we serve static files
         let path = req.path().to_string();
 
-        println!("PATH: {:?}", path);
-
         // ... you trying to do something bad?
         if path.contains("./") || path.contains("../") {
             // GET OUT
@@ -73,7 +69,6 @@ impl Service for Contributors {
         }
 
         if path.starts_with("/public") && Path::new(&path[1..]).exists() {
-            println!("serve static arm\npath: {}", path);
             let mut f = File::open(&path[1..]).unwrap();
             let mut source = Vec::new();
             f.read_to_end(&mut source).unwrap();

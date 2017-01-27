@@ -69,7 +69,6 @@ fn main() {
 
     // get path to git repo
     let path = matches.value_of("filepath").unwrap();
-    println!("Path to rust repo: {}", path);
 
     // create releases
 

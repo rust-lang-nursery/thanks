@@ -25,13 +25,14 @@
       <table>
         <thead>
           <tr>
+            <th>Rank</th>
             <th>Name</th>
             <th>Commits</th>
           </tr>
         </thead>
         <tbody>
           {{#each scores as |score| }}
-            <tr><td>{{ score.author }}</td><td>{{ score.commits }}</td></tr>
+		  <tr><td>{{ score.rank }}</td><td>{{ score.author }}</td><td>{{ score.commits }}</td></tr>
           {{/each}}
         </tbody>
       </table>

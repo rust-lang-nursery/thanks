@@ -13,6 +13,10 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
+#[macro_use]
+extern crate slog;
+extern crate slog_term;
+
 extern crate http;
 
 use hyper::StatusCode;
@@ -27,6 +31,31 @@ use std::io::prelude::*;
 use std::fs::File;
 
 use serde_json::value::Value;
+
+use slog::DrainExt;
+
+fn main() {
+    dotenv::dotenv().ok();
+    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
+
+    let addr = format!("0.0.0.0:{}", env::args().nth(1).unwrap_or(String::from("1337"))).parse().unwrap();
+
+    let server = http::Server;
+    let mut contributors = http::Contributors::new();
+
+    contributors.add_route("/", root);
+
+    contributors.add_route("/about", about);
+
+    contributors.add_route("/all-time", all_time);
+    
+    // * is the catch-all route
+    contributors.add_route("*", catch_all);
+
+    info!(log, "Starting server, listening on http://{}", addr);
+
+    server.run(&addr, contributors);
+}
 
 fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
     let handlebars = Handlebars::new();
@@ -119,26 +148,4 @@ fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
                         .with_header(ContentType::html())
                         .with_body(handlebars.template_render(&source, &data).unwrap())
                        )
-}
-
-fn main() {
-    dotenv::dotenv().ok();
-
-    let addr = format!("0.0.0.0:{}", env::args().nth(1).unwrap_or(String::from("1337"))).parse().unwrap();
-
-    let server = http::Server;
-    let mut contributors = http::Contributors::new();
-
-    contributors.add_route("/", root);
-
-    contributors.add_route("/about", about);
-
-    contributors.add_route("/all-time", all_time);
-    
-    // * is the catch-all route
-    contributors.add_route("*", catch_all);
-
-    println!("Starting server, listening on http://{}", addr);
-
-    server.run(&addr, contributors);
 }

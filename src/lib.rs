@@ -13,6 +13,7 @@ use dotenv::dotenv;
 extern crate caseless;
 extern crate unicode_normalization;
 
+use std::collections::BTreeMap;
 use std::env;
 use std::cmp::Ordering;
 use std::process::Command;
@@ -201,3 +202,26 @@ pub fn releases() -> Vec<Value> {
         .collect()
 }
 
+pub fn scores() -> Vec<Value> {
+    use schema::commits::dsl::*;
+    use diesel::expression::dsl::sql;
+    use diesel::types::BigInt;
+
+    let connection = establish_connection();
+
+    let scores: Vec<_> =
+        commits
+        .select((author_name, sql::<BigInt>("COUNT(author_name) AS author_count")))
+        .group_by(author_name)
+        .order(sql::<BigInt>("author_count").desc())
+        .load(&connection)
+        .unwrap();
+
+    scores.into_iter().map(|(author, score)| {
+        let mut json_score: BTreeMap<String, Value> = BTreeMap::new();
+        json_score.insert("author".to_string(), Value::String(author));
+        json_score.insert("commits".to_string(), Value::I64(score));
+
+        Value::Object(json_score)
+    }).collect()
+}

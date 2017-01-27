@@ -68,27 +68,7 @@ fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
 
         f.read_to_string(&mut source).unwrap();
 
-        use contributors::schema::commits::dsl::*;
-        use diesel::expression::dsl::sql;
-        use diesel::types::BigInt;
-
-        let connection = contributors::establish_connection();
-
-        let scores: Vec<_> =
-            commits
-            .select((author_name, sql::<BigInt>("COUNT(author_name) AS author_count")))
-            .group_by(author_name)
-            .order(sql::<BigInt>("author_count").desc())
-            .load(&connection)
-            .unwrap();
-
-        let scores: Vec<_> = scores.into_iter().map(|(author, score)| {
-            let mut json_score: BTreeMap<String, Value> = BTreeMap::new();
-            json_score.insert("author".to_string(), Value::String(author));
-            json_score.insert("commits".to_string(), Value::I64(score));
-
-            Value::Object(json_score)
-        }).collect();
+        let scores = contributors::scores();
 
         data.insert("count".to_string(), Value::U64(scores.len() as u64));
         data.insert("scores".to_string(), Value::Array(scores));

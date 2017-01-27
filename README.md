@@ -7,9 +7,6 @@
 
 This web application shows people who have contributed to Rust.
 
-It's very bad right now, sorry. But it technically works! We're working on
-improving it.
-
 ## Setup
 
 You'll need nightly Rust for now. This will change with Rust 1.15, when

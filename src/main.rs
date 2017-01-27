@@ -38,22 +38,9 @@ fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
 
     f.read_to_string(&mut source).unwrap();
 
-    use contributors::schema::releases::dsl::*;
-    use contributors::models::Release;
-
-    let connection = contributors::establish_connection();
-    let results = releases.filter(version.ne("master"))
-        .load::<Release>(&connection)
-        .expect("Error loading releases");
-
-    let results: Vec<_> = results.into_iter()
-        .rev()
-        .map(|r| Value::String(r.version))
-        .collect();
-
     let mut data: BTreeMap<String, Value> = BTreeMap::new();
 
-    data.insert("releases".to_string(), Value::Array(results));
+    data.insert("releases".to_string(), Value::Array(contributors::releases()));
 
     ::futures::finished(Response::new()
                         .with_header(ContentType::html())

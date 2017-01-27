@@ -17,6 +17,8 @@ use std::env;
 use std::cmp::Ordering;
 use std::process::Command;
 
+extern crate serde_json;
+
 pub mod schema;
 pub mod models;
 
@@ -24,6 +26,8 @@ use self::models::{Commit, NewCommit};
 use self::models::{Release, NewRelease};
 
 use unicode_normalization::UnicodeNormalization;
+
+use serde_json::value::Value;
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
@@ -181,3 +185,19 @@ pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
         };
     }
 }
+
+pub fn releases() -> Vec<Value> {
+    use schema::releases::dsl::*;
+    use models::Release;
+
+    let connection = establish_connection();
+    let results = releases.filter(version.ne("master"))
+        .load::<Release>(&connection)
+        .expect("Error loading releases");
+
+    results.into_iter()
+        .rev()
+        .map(|r| Value::String(r.version))
+        .collect()
+}
+

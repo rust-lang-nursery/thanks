@@ -46,6 +46,22 @@ fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
                        )
 }
 
+fn about(_: Request) -> futures::Finished<Response, hyper::Error> {
+    let handlebars = Handlebars::new();
+
+    let mut f = File::open("templates/about.hbs").unwrap();
+    let mut source = String::new();
+
+    f.read_to_string(&mut source).unwrap();
+
+    let data: BTreeMap<String, Value> = BTreeMap::new();
+
+    ::futures::finished(Response::new()
+                        .with_header(ContentType::html())
+                        .with_body(handlebars.template_render(&source, &data).unwrap())
+                       )
+}
+
 fn all_time(req: Request) -> futures::Finished<Response, hyper::Error> {
     let path = req.path();
     println!("all-time arm\npath: {}", path);
@@ -119,8 +135,10 @@ fn main() {
 
     contributors.add_route("/", root);
 
-    contributors.add_route("/all-time", all_time);
+    contributors.add_route("/about", about);
 
+    contributors.add_route("/all-time", all_time);
+    
     // * is the catch-all route
     contributors.add_route("*", catch_all);
 

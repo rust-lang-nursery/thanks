@@ -20,22 +20,10 @@ extern crate slog_term;
 extern crate clap;
 
 use diesel::prelude::*;
-use diesel::pg::PgConnection;
-use dotenv::dotenv;
 use clap::{App, Arg};
 use slog::DrainExt;
 
-use std::env;
 use std::process::Command;
-
-pub fn establish_connection() -> PgConnection {
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
-}
 
 fn main() {
     let matches = App::new("populate")
@@ -50,7 +38,7 @@ fn main() {
 
     let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
 
-    let connection = establish_connection();
+    let connection = contributors::establish_connection();
 
     // check that we have no releases
     {

@@ -132,37 +132,37 @@ fn main() {
     }
 
     // assign commits to their release
-    contributors::assign_commits("0.2", "0.1", &path);
-    contributors::assign_commits("0.3", "0.2", &path);
-    contributors::assign_commits("0.4", "0.3", &path);
-    contributors::assign_commits("0.5", "0.4", &path);
-    contributors::assign_commits("0.6", "0.5", &path);
-    contributors::assign_commits("0.7", "0.6", &path);
-    contributors::assign_commits("0.8", "0.7", &path);
-    contributors::assign_commits("0.9", "0.8", &path);
-    contributors::assign_commits("0.10", "0.9", &path);
-    contributors::assign_commits("0.11.0", "0.10", &path);
-    contributors::assign_commits("0.12.0", "0.11.0", &path);
-    contributors::assign_commits("1.0.0-alpha", "0.12.0", &path);
-    contributors::assign_commits("1.0.0-alpha.2", "1.0.0-alpha", &path);
-    contributors::assign_commits("1.0.0-beta", "1.0.0-alpha.2", &path);
-    contributors::assign_commits("1.0.0", "1.0.0-beta", &path);
-    contributors::assign_commits("1.1.0", "1.0.0", &path);
-    contributors::assign_commits("1.2.0", "1.1.0", &path);
-    contributors::assign_commits("1.3.0", "1.2.0", &path);
-    contributors::assign_commits("1.4.0", "1.3.0", &path);
-    contributors::assign_commits("1.5.0", "1.4.0", &path);
-    contributors::assign_commits("1.6.0", "1.5.0", &path);
-    contributors::assign_commits("1.7.0", "1.6.0", &path);
-    contributors::assign_commits("1.8.0", "1.7.0", &path);
-    contributors::assign_commits("1.9.0", "1.8.0", &path);
-    contributors::assign_commits("1.10.0", "1.9.0", &path);
-    contributors::assign_commits("1.11.0", "1.10.0", &path);
-    contributors::assign_commits("1.12.0", "1.11.0", &path);
-    contributors::assign_commits("1.12.1", "1.12.0", &path);
-    contributors::assign_commits("1.13.0", "1.12.0", &path);
-    contributors::assign_commits("1.14.0", "1.13.0", &path);
-    contributors::assign_commits("master", "1.14.0", &path);
+    contributors::assign_commits(&log, "0.2", "0.1", &path);
+    contributors::assign_commits(&log, "0.3", "0.2", &path);
+    contributors::assign_commits(&log, "0.4", "0.3", &path);
+    contributors::assign_commits(&log, "0.5", "0.4", &path);
+    contributors::assign_commits(&log, "0.6", "0.5", &path);
+    contributors::assign_commits(&log, "0.7", "0.6", &path);
+    contributors::assign_commits(&log, "0.8", "0.7", &path);
+    contributors::assign_commits(&log, "0.9", "0.8", &path);
+    contributors::assign_commits(&log, "0.10", "0.9", &path);
+    contributors::assign_commits(&log, "0.11.0", "0.10", &path);
+    contributors::assign_commits(&log, "0.12.0", "0.11.0", &path);
+    contributors::assign_commits(&log, "1.0.0-alpha", "0.12.0", &path);
+    contributors::assign_commits(&log, "1.0.0-alpha.2", "1.0.0-alpha", &path);
+    contributors::assign_commits(&log, "1.0.0-beta", "1.0.0-alpha.2", &path);
+    contributors::assign_commits(&log, "1.0.0", "1.0.0-beta", &path);
+    contributors::assign_commits(&log, "1.1.0", "1.0.0", &path);
+    contributors::assign_commits(&log, "1.2.0", "1.1.0", &path);
+    contributors::assign_commits(&log, "1.3.0", "1.2.0", &path);
+    contributors::assign_commits(&log, "1.4.0", "1.3.0", &path);
+    contributors::assign_commits(&log, "1.5.0", "1.4.0", &path);
+    contributors::assign_commits(&log, "1.6.0", "1.5.0", &path);
+    contributors::assign_commits(&log, "1.7.0", "1.6.0", &path);
+    contributors::assign_commits(&log, "1.8.0", "1.7.0", &path);
+    contributors::assign_commits(&log, "1.9.0", "1.8.0", &path);
+    contributors::assign_commits(&log, "1.10.0", "1.9.0", &path);
+    contributors::assign_commits(&log, "1.11.0", "1.10.0", &path);
+    contributors::assign_commits(&log, "1.12.0", "1.11.0", &path);
+    contributors::assign_commits(&log, "1.12.1", "1.12.0", &path);
+    contributors::assign_commits(&log, "1.13.0", "1.12.0", &path);
+    contributors::assign_commits(&log, "1.14.0", "1.13.0", &path);
+    contributors::assign_commits(&log, "master", "1.14.0", &path);
 
     info!(log, "Done!");
 }

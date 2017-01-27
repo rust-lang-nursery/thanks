@@ -20,6 +20,10 @@ use std::process::Command;
 
 extern crate serde_json;
 
+#[macro_use]
+extern crate slog;
+extern crate slog_term;
+
 pub mod schema;
 pub mod models;
 
@@ -115,10 +119,10 @@ pub fn inaccurate_sort(strings: &mut Vec<String>) {
     strings.sort_by(|a, b| str_cmp(&a, &b));
 }
 
-pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
+pub fn assign_commits(log: &slog::Logger, release_name: &str, previous_release: &str, path: &str) {
     let connection = establish_connection();
 
-    println!("Assigning commits to release {}", release_name);
+    info!(log, "Assigning commits to release {}", release_name);
 
     let git_log = Command::new("git")
         .arg("-C")
@@ -131,16 +135,16 @@ pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
         .output()
         .expect("failed to execute process");
 
-    let log = git_log.stdout;
-    let log = String::from_utf8(log).unwrap();
+    let git_log = git_log.stdout;
+    let git_log = String::from_utf8(git_log).unwrap();
 
-    for sha_name in log.split('\n') {
+    for sha_name in git_log.split('\n') {
         // there is a last, blank line
         if sha_name == "" {
             continue;
         }
 
-        println!("Assigning commit {} to release {}", sha_name, release_name);
+        info!(log, "Assigning commit {} to release {}", sha_name, release_name);
 
         use schema::releases::dsl::*;
         use models::Release;
@@ -168,10 +172,10 @@ pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
                     .output()
                     .expect("failed to execute process");
 
-                let log = git_log.stdout;
-                let log = String::from_utf8(log).unwrap();
+                let git_log = git_log.stdout;
+                let git_log = String::from_utf8(git_log).unwrap();
 
-                let log_line = log.split('\n').nth(0).unwrap();
+                let log_line = git_log.split('\n').nth(0).unwrap();
 
                 let mut split = log_line.splitn(3, ' ');
 
@@ -179,7 +183,7 @@ pub fn assign_commits(release_name: &str, previous_release: &str, path: &str) {
                 let the_author_email = split.next().unwrap();
                 let the_author_name = split.next().unwrap();
 
-                println!("Creating commit {} for release {}", the_sha, the_release.version);
+                info!(log, "Creating commit {} for release {}", the_sha, the_release.version);
 
                 create_commit(&connection, &the_sha, &the_author_name, &the_author_email, &the_release);
             },

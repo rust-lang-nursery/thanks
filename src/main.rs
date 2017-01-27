@@ -46,6 +46,32 @@ fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
                        )
 }
 
+fn all_time(req: Request) -> futures::Finished<Response, hyper::Error> {
+    let path = req.path();
+    println!("all-time arm\npath: {}", path);
+
+    let handlebars = Handlebars::new();
+
+    let mut source = String::new();
+
+    let mut data: BTreeMap<String, Value> = BTreeMap::new();
+
+    let mut f = File::open("templates/all-time.hbs").unwrap();
+
+    f.read_to_string(&mut source).unwrap();
+
+    let scores = contributors::scores();
+
+    data.insert("release".to_string(), Value::String(String::from("all-time")));
+    data.insert("count".to_string(), Value::U64(scores.len() as u64));
+    data.insert("scores".to_string(), Value::Array(scores));
+
+    ::futures::finished(Response::new()
+                        .with_header(ContentType::html())
+                        .with_body(handlebars.template_render(&source, &data).unwrap())
+                       )
+}
+
 fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
     let path = req.path();
 
@@ -60,33 +86,20 @@ fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
 
     data.insert("release".to_string(), Value::String(release_name.clone()));
 
-    if release_name == "all-time" {
-        println!("all-time arm\npath: {}", path);
-        let mut f = File::open("templates/all-time.hbs").unwrap();
+    println!("releases arm\npath: {}", path);
+    let mut f = File::open("templates/release.hbs").unwrap();
+    f.read_to_string(&mut source).unwrap();
 
-        f.read_to_string(&mut source).unwrap();
+    let names = contributors::names(&release_name);
 
-        let scores = contributors::scores();
-
-        data.insert("count".to_string(), Value::U64(scores.len() as u64));
-        data.insert("scores".to_string(), Value::Array(scores));
-        // serve files in a public directory statically
-    } else {
-        println!("releases arm\npath: {}", path);
-        let mut f = File::open("templates/release.hbs").unwrap();
-        f.read_to_string(&mut source).unwrap();
-
-        let names = contributors::names(&release_name);
-
-        match names {
-            Some(names) => {
-                data.insert("count".to_string(), Value::U64(names.len() as u64));
-                data.insert("names".to_string(), Value::Array(names));
-            },
-            None => {
-                return ::futures::finished(Response::new()
-                                           .with_status(StatusCode::NotFound));
-            }
+    match names {
+        Some(names) => {
+            data.insert("count".to_string(), Value::U64(names.len() as u64));
+            data.insert("names".to_string(), Value::Array(names));
+        },
+        None => {
+            return ::futures::finished(Response::new()
+                                       .with_status(StatusCode::NotFound));
         }
     }
 
@@ -105,6 +118,8 @@ fn main() {
     let mut contributors = http::Contributors::new();
 
     contributors.add_route("/", root);
+
+    contributors.add_route("/all-time", all_time);
 
     // * is the catch-all route
     contributors.add_route("*", catch_all);

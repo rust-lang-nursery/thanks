@@ -15,8 +15,6 @@ extern crate serde_json;
 
 extern crate http;
 
-use diesel::prelude::*;
-
 use hyper::StatusCode;
 use hyper::header::ContentType;
 use hyper::server::{Request, Response};
@@ -78,34 +76,18 @@ fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
         let mut f = File::open("templates/release.hbs").unwrap();
         f.read_to_string(&mut source).unwrap();
 
-        use contributors::schema::releases::dsl::*;
-        use contributors::schema::commits::dsl::*;
-        use contributors::models::Release;
-        use contributors::models::Commit;
+        let names = contributors::names(&release_name);
 
-        let connection = contributors::establish_connection();
-
-        let release: Release = match releases.filter(version.eq(release_name))
-            .first(&connection) {
-                Ok(release) => release,
-                    Err(_) => {
-                        return ::futures::finished(Response::new()
-                                                   .with_status(StatusCode::NotFound));
-                    },
-            };
-
-        // it'd be better to do this in the db
-        // but Postgres doesn't do Unicode collation correctly on OSX
-        // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
-        let mut names: Vec<String> = Commit::belonging_to(&release)
-            .select(author_name).distinct().load(&connection).unwrap();
-
-        contributors::inaccurate_sort(&mut names);
-
-        let names: Vec<_> = names.into_iter().map(Value::String).collect();
-
-        data.insert("count".to_string(), Value::U64(names.len() as u64));
-        data.insert("names".to_string(), Value::Array(names));
+        match names {
+            Some(names) => {
+                data.insert("count".to_string(), Value::U64(names.len() as u64));
+                data.insert("names".to_string(), Value::Array(names));
+            },
+            None => {
+                return ::futures::finished(Response::new()
+                                           .with_status(StatusCode::NotFound));
+            }
+        }
     }
 
     ::futures::finished(Response::new()

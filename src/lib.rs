@@ -225,3 +225,30 @@ pub fn scores() -> Vec<Value> {
         Value::Object(json_score)
     }).collect()
 }
+
+pub fn names(release_name: &str) -> Option<Vec<Value>> {
+    use schema::releases::dsl::*;
+    use schema::commits::dsl::*;
+    use models::Release;
+    use models::Commit;
+
+    let connection = establish_connection();
+
+    let release: Release = match releases.filter(version.eq(release_name))
+        .first(&connection) {
+            Ok(release) => release,
+                Err(_) => {
+                    return None;
+                },
+        };
+
+    // it'd be better to do this in the db
+    // but Postgres doesn't do Unicode collation correctly on OSX
+    // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
+    let mut names: Vec<String> = Commit::belonging_to(&release)
+        .select(author_name).distinct().load(&connection).unwrap();
+
+    inaccurate_sort(&mut names);
+
+    Some(names.into_iter().map(Value::String).collect())
+}

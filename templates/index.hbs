@@ -1,26 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Rust Contributors</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="public/styles/bootstrap.css"/>
-    <link rel="stylesheet" href="public/styles/styles.css"/>
-    <link rel="stylesheet" href="public/styles/custom.css"/>
-  </head>
-  <body class="container">
-    <div class="center">
-      <h1 class="jumbo">
-        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
-        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
-        Thanks!
-        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
-        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
-      </h1>
+{{#*inline "content"}}
       <p>
       Rust is a community project and is very thankful for the many community contributions it receives. <a href="about">See this page for more information</a>.
       <p>
-      <h2>Releases:</h2> 
+      <h2>Releases:</h2>
       <ul>
         <li><a href="all-time">All time</li>
         <li><a href="master">Unreleased (on the master branch, not in a release yet)</a></li>
@@ -28,6 +10,5 @@
           <li><a href="{{ release }}">{{ release }}</a></li>
         {{/each}}
       </ul>
-    </div>
-  </body>
-</html>
+{{/inline}}
+{{~> (parent)~}}

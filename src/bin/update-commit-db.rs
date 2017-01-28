@@ -19,8 +19,13 @@ use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
 use reqwest::Url;
+#[macro_use]
+extern crate slog;
+extern crate slog_term;
 
-use std::env;
+use slog::DrainExt;
+
+use diesel::prelude::*;
 
 #[derive(Debug,Deserialize)]
 struct GitHubResponse(Vec<Object>);
@@ -66,16 +71,16 @@ fn update_commit_db(github_name: &str, connection: &PgConnection) {
     let master_release = releases.filter(version.eq("master")).first::<Release>(connection).expect("could not find release");
 
     for object in response.0 {
-        println!("Found commit with sha {}", object.sha);
+        info!(log, "Found commit with sha {}", object.sha);
 
         // do we have this commit? If so, ignore it.
         match commits.filter(sha.eq(&object.sha)).first::<Commit>(connection) {
             Ok(commit) => {
-                println!("Commit {} already in db, skipping", commit.sha);
+                info!(log, "Commit {} already in db, skipping", commit.sha);
                 continue;
             },
             Err(_) => {
-                println!("Creating commit {} for release {}", object.sha, master_release.version);
+                info!(log, "Creating commit {} for release {}", object.sha, master_release.version);
 
                 // this commit will be part of master
                 contributors::create_commit(connection, &object.sha, &object.commit.author.name, &object.commit.author.email, &master_release);
@@ -85,6 +90,7 @@ fn update_commit_db(github_name: &str, connection: &PgConnection) {
 }
 
 fn main() {
+    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
     use contributors::schema::projects::dsl::*;
     use contributors::models::Project;
     let connection = establish_connection();

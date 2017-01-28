@@ -18,19 +18,21 @@
         <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
       </h1>
       <h2>Rust All-time Contributors</h2>
+      <p><a href="../">Back to all releases</a></p>
 
       <p>We have had {{ count }} individuals contribute to Rust. Thank you so much!</p>
     
-      <table>
+      <table class="table table-striped">
         <thead>
           <tr>
+            <th>Rank</th>
             <th>Name</th>
             <th>Commits</th>
           </tr>
         </thead>
         <tbody>
           {{#each scores as |score| }}
-            <tr><td>{{ score.author }}</td><td>{{ score.commits }}</td></tr>
+		  <tr><td>{{ score.rank }}</td><td>{{ score.author }}</td><td>{{ score.commits }}</td></tr>
           {{/each}}
         </tbody>
       </table>

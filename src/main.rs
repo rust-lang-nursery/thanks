@@ -1,4 +1,4 @@
-extern crate diesel;
+extern crate contributors;
 
 extern crate dotenv;
 
@@ -7,18 +7,18 @@ extern crate futures;
 extern crate handlebars;
 
 extern crate hyper;
-extern crate reqwest;
 
-extern crate serde;
 extern crate serde_json;
 
-extern crate contributors;
+#[macro_use]
+extern crate slog;
+extern crate slog_term;
 
-use diesel::prelude::*;
+extern crate http;
 
-use hyper::{Get, StatusCode};
+use hyper::StatusCode;
 use hyper::header::ContentType;
-use hyper::server::{Http, Service, Request, Response};
+use hyper::server::{Request, Response};
 
 use handlebars::Handlebars;
 
@@ -26,156 +26,123 @@ use std::collections::BTreeMap;
 use std::env;
 use std::io::prelude::*;
 use std::fs::File;
-use std::path::Path;
 
 use serde_json::value::Value;
 
-struct Contributors;
-
-impl Service for Contributors {
-    type Request = Request;
-    type Response = Response;
-    type Error = hyper::Error;
-    type Future = ::futures::Finished<Response, hyper::Error>;
-
-    fn call(&self, req: Request) -> Self::Future {
-        ::futures::finished(match (req.method(), req.path()) {
-            (&Get, "/") => {
-                let handlebars = Handlebars::new();
-
-                let mut f = File::open("templates/index.hbs").unwrap();
-                let mut source = String::new();
-
-                f.read_to_string(&mut source).unwrap();
-
-                use contributors::schema::releases::dsl::*;
-                use contributors::models::Release;
-
-                let connection = contributors::establish_connection();
-                let results = releases.filter(version.ne("master"))
-                    .load::<Release>(&connection)
-                    .expect("Error loading releases");
-
-                let results: Vec<_> = results.into_iter()
-                    .rev()
-                    .map(|r| Value::String(r.version))
-                    .collect();
-
-                let mut data: BTreeMap<String, Value> = BTreeMap::new();
-
-                data.insert("releases".to_string(), Value::Array(results));
-
-                Response::new()
-                    .with_header(ContentType::html())
-                    .with_body(handlebars.template_render(&source, &data).unwrap())
-            },
-            (&Get, path) => {
-                let handlebars = Handlebars::new();
-
-                let mut source = String::new();
-
-                let mut data: BTreeMap<String, Value> = BTreeMap::new();
-
-                // strip the leading `/` lol
-                let release_name = path[1..].to_string();
-
-                data.insert("release".to_string(), Value::String(release_name.clone()));
-
-                if release_name == "all-time" {
-                    println!("all-time arm\npath: {}", path);
-                    let mut f = File::open("templates/all-time.hbs").unwrap();
-
-                    f.read_to_string(&mut source).unwrap();
-
-                    use contributors::schema::commits::dsl::*;
-                    use diesel::expression::dsl::sql;
-                    use diesel::types::BigInt;
-
-                    let connection = contributors::establish_connection();
-
-                    let scores: Vec<_> =
-                        commits
-                        .select((author_name, sql::<BigInt>("COUNT(author_name) AS author_count")))
-                        .group_by(author_name)
-                        .order(sql::<BigInt>("author_count").desc())
-                        .load(&connection)
-                        .unwrap();
-
-                    let scores: Vec<_> = scores.into_iter().map(|(author, score)| {
-                        let mut json_score: BTreeMap<String, Value> = BTreeMap::new();
-                        json_score.insert("author".to_string(), Value::String(author));
-                        json_score.insert("commits".to_string(), Value::I64(score));
-
-                        Value::Object(json_score)
-                    }).collect();
-
-                    data.insert("count".to_string(), Value::U64(scores.len() as u64));
-                    data.insert("scores".to_string(), Value::Array(scores));
-                // serve files in a public directory statically
-                } else if path.starts_with("/public") && Path::new(&path[1..]).exists() {
-                    println!("serve static arm\npath: {}", path);
-                    let mut f = File::open(&path[1..]).unwrap();
-                    let mut source = Vec::new();
-                    f.read_to_end(&mut source).unwrap();
-
-                    return ::futures::finished(Response::new()
-                      .with_body(source));
-                } else {
-                    println!("releases arm\npath: {}", path);
-                    let mut f = File::open("templates/release.hbs").unwrap();
-                    f.read_to_string(&mut source).unwrap();
-
-                    use contributors::schema::releases::dsl::*;
-                    use contributors::schema::commits::dsl::*;
-                    use contributors::models::Release;
-                    use contributors::models::Commit;
-
-                    let connection = contributors::establish_connection();
-
-                    let release: Release = match releases.filter(version.eq(release_name))
-                                                   .first(&connection) {
-                        Ok(release) => release,
-                        Err(_) => {
-                            return ::futures::finished(Response::new()
-                                .with_status(StatusCode::NotFound));
-                        },
-                    };
-
-                    // it'd be better to do this in the db
-                    // but Postgres doesn't do Unicode collation correctly on OSX
-                    // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
-                    let mut names: Vec<String> = Commit::belonging_to(&release)
-                        .select(author_name).distinct().load(&connection).unwrap();
-
-                    contributors::inaccurate_sort(&mut names);
-
-                    let names: Vec<_> = names.into_iter().map(Value::String).collect();
-
-                    data.insert("count".to_string(), Value::U64(names.len() as u64));
-                    data.insert("names".to_string(), Value::Array(names));
-                }
-
-                Response::new()
-                    .with_header(ContentType::html())
-                    .with_body(handlebars.template_render(&source, &data).unwrap())
-            },
-            _ => {
-                Response::new()
-                    .with_status(StatusCode::NotFound)
-            }
-        })
-    }
-
-}
-
+use slog::DrainExt;
 
 fn main() {
     dotenv::dotenv().ok();
+    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
 
     let addr = format!("0.0.0.0:{}", env::args().nth(1).unwrap_or(String::from("1337"))).parse().unwrap();
 
-    let server = Http::new().bind(&addr, || Ok(Contributors)).unwrap();
-    println!("Listening on http://{}", server.local_addr().unwrap());
-    server.run().unwrap();
+    let server = http::Server;
+    let mut contributors = http::Contributors::new();
+
+    contributors.add_route("/", root);
+
+    contributors.add_route("/about", about);
+
+    contributors.add_route("/all-time", all_time);
+    
+    // * is the catch-all route
+    contributors.add_route("*", catch_all);
+
+    info!(log, "Starting server, listening on http://{}", addr);
+
+    server.run(&addr, contributors);
 }
 
+fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
+    let handlebars = Handlebars::new();
+
+    let mut f = File::open("templates/index.hbs").unwrap();
+    let mut source = String::new();
+
+    f.read_to_string(&mut source).unwrap();
+
+    let mut data: BTreeMap<String, Value> = BTreeMap::new();
+
+    data.insert("releases".to_string(), Value::Array(contributors::releases()));
+
+    ::futures::finished(Response::new()
+                        .with_header(ContentType::html())
+                        .with_body(handlebars.template_render(&source, &data).unwrap())
+                       )
+}
+
+fn about(_: Request) -> futures::Finished<Response, hyper::Error> {
+    let handlebars = Handlebars::new();
+
+    let mut f = File::open("templates/about.hbs").unwrap();
+    let mut source = String::new();
+
+    f.read_to_string(&mut source).unwrap();
+
+    let data: BTreeMap<String, Value> = BTreeMap::new();
+
+    ::futures::finished(Response::new()
+                        .with_header(ContentType::html())
+                        .with_body(handlebars.template_render(&source, &data).unwrap())
+                       )
+}
+
+fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
+    let handlebars = Handlebars::new();
+
+    let mut source = String::new();
+
+    let mut data: BTreeMap<String, Value> = BTreeMap::new();
+
+    let mut f = File::open("templates/all-time.hbs").unwrap();
+
+    f.read_to_string(&mut source).unwrap();
+
+    let scores = contributors::scores();
+
+    data.insert("release".to_string(), Value::String(String::from("all-time")));
+    data.insert("count".to_string(), Value::U64(scores.len() as u64));
+    data.insert("scores".to_string(), Value::Array(scores));
+
+    ::futures::finished(Response::new()
+                        .with_header(ContentType::html())
+                        .with_body(handlebars.template_render(&source, &data).unwrap())
+                       )
+}
+
+fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
+    let path = req.path();
+
+    let handlebars = Handlebars::new();
+
+    let mut source = String::new();
+
+    let mut data: BTreeMap<String, Value> = BTreeMap::new();
+
+    // strip the leading `/` lol
+    let release_name = path[1..].to_string();
+
+    data.insert("release".to_string(), Value::String(release_name.clone()));
+
+    let mut f = File::open("templates/release.hbs").unwrap();
+    f.read_to_string(&mut source).unwrap();
+
+    let names = contributors::names(&release_name);
+
+    match names {
+        Some(names) => {
+            data.insert("count".to_string(), Value::U64(names.len() as u64));
+            data.insert("names".to_string(), Value::Array(names));
+        },
+        None => {
+            return ::futures::finished(Response::new()
+                                       .with_status(StatusCode::NotFound));
+        }
+    }
+
+    ::futures::finished(Response::new()
+                        .with_header(ContentType::html())
+                        .with_body(handlebars.template_render(&source, &data).unwrap())
+                       )
+}

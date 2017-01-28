@@ -13,25 +13,18 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
+#[macro_use]
+extern crate slog;
+extern crate slog_term;
+
 extern crate clap;
 
 use diesel::prelude::*;
-use diesel::pg::PgConnection;
-use dotenv::dotenv;
 use clap::{App, Arg};
+use slog::DrainExt;
 
-use std::env;
 use std::io;
 use std::process::{Command, Stdio};
-
-pub fn establish_connection() -> PgConnection {
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
-}
 
 fn main() {
     let matches = App::new("populate")
@@ -62,11 +55,13 @@ fn main() {
             .required(true))
         .get_matches();
 
-    let connection = establish_connection();
+    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
+
+    let connection = contributors::establish_connection();
 
     // get name
     let project_name = matches.value_of("name").unwrap();
-    println!("Project name: {}", project_name);
+    info!(log, "Project name: {}", project_name);
 
     // check that we have no releases for given project
     {
@@ -93,15 +88,15 @@ fn main() {
 
     // get path to git repo
     let path = matches.value_of("filepath").unwrap();
-    println!("Path to project's repo: {}", path);
+    info!(log, "Path to project's repo: {}", path);
 
     // get url path
     let url_path = matches.value_of("url_path").unwrap();
-    println!("URL path: {}", url_path);
+    info!(log, "URL path: {}", url_path);
 
     // get github name
     let github_name = matches.value_of("github_name").unwrap();
-    println!("GitHub name: {}", github_name);
+    info!(log, "GitHub name: {}", github_name);
 
     // create project
     let project = contributors::create_project(&connection, project_name, url_path, github_name);
@@ -156,8 +151,8 @@ fn main() {
         .output()
         .expect("failed to execute process");
 
-    let log = git_log.stdout;
-    let log = String::from_utf8(log).unwrap();
+    let git_log = git_log.stdout;
+    let git_log = String::from_utf8(git_log).unwrap();
     {
         use contributors::schema::releases::dsl::*;
         use contributors::models::Release;
@@ -166,7 +161,7 @@ fn main() {
             first::<Release>(&connection).
             expect("No release found!");
 
-        for log_line in log.split('\n') {
+        for log_line in git_log.split('\n') {
             // there is a last, blank line
             if log_line == "" {
                 continue;
@@ -178,7 +173,7 @@ fn main() {
             let author_email = split.next().unwrap();
             let author_name = split.next().unwrap();
 
-            println!("Creating commit: {}", sha);
+            info!(log, "Creating commit: {}", sha);
 
             // We tag all commits initially to the first release. Each release will
             // set this properly below.
@@ -191,8 +186,9 @@ fn main() {
     for (i, v1) in releases.iter().enumerate() {
         let v2 = releases.get(i+1).unwrap_or(&master);
         println!("({}, {})", v1, v2);
-        contributors::assign_commits(v2, v1, project.id, &path);
+        contributors::assign_commits(&log, v2, v1, project.id, &path);
     }
 
-    println!("Done!");
+
+    info!(log, "Done!");
 }

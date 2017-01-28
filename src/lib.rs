@@ -13,9 +13,16 @@ use dotenv::dotenv;
 extern crate caseless;
 extern crate unicode_normalization;
 
+use std::collections::BTreeMap;
 use std::env;
 use std::cmp::Ordering;
 use std::process::Command;
+
+extern crate serde_json;
+
+#[macro_use]
+extern crate slog;
+extern crate slog_term;
 
 pub mod schema;
 pub mod models;
@@ -25,6 +32,8 @@ use self::models::{Commit, NewCommit};
 use self::models::{Release, NewRelease};
 
 use unicode_normalization::UnicodeNormalization;
+
+use serde_json::value::Value;
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
@@ -126,10 +135,12 @@ pub fn inaccurate_sort(strings: &mut Vec<String>) {
     strings.sort_by(|a, b| str_cmp(&a, &b));
 }
 
-pub fn assign_commits(release_name: &str, previous_release: &str, release_project_id: i32, path: &str) {
+pub fn assign_commits(log: &slog::Logger, release_name: &str, previous_release: &str, release_project_id: i32, path: &str) {
+    // Could take the connection as a parameter, as problably
+    // it's already established somewhere...
     let connection = establish_connection();
 
-    println!("Assigning commits to release {}", release_name);
+    info!(log, "Assigning commits to release {}", release_name);
 
     let git_log = Command::new("git")
         .arg("-C")
@@ -142,16 +153,16 @@ pub fn assign_commits(release_name: &str, previous_release: &str, release_projec
         .output()
         .expect("failed to execute process");
 
-    let log = git_log.stdout;
-    let log = String::from_utf8(log).unwrap();
+    let git_log = git_log.stdout;
+    let git_log = String::from_utf8(git_log).unwrap();
 
-    for sha_name in log.split('\n') {
+    for sha_name in git_log.split('\n') {
         // there is a last, blank line
         if sha_name == "" {
             continue;
         }
 
-        println!("Assigning commit {} to release {}", sha_name, release_name);
+        info!(log, "Assigning commit {} to release {}", sha_name, release_name);
 
         use schema::releases::dsl::*;
         use models::Release;
@@ -183,10 +194,10 @@ pub fn assign_commits(release_name: &str, previous_release: &str, release_projec
                     .output()
                     .expect("failed to execute process");
 
-                let log = git_log.stdout;
-                let log = String::from_utf8(log).unwrap();
+                let git_log = git_log.stdout;
+                let git_log = String::from_utf8(git_log).unwrap();
 
-                let log_line = log.split('\n').nth(0).unwrap();
+                let log_line = git_log.split('\n').nth(0).unwrap();
 
                 let mut split = log_line.splitn(3, ' ');
 
@@ -194,10 +205,97 @@ pub fn assign_commits(release_name: &str, previous_release: &str, release_projec
                 let the_author_email = split.next().unwrap();
                 let the_author_name = split.next().unwrap();
 
-                println!("Creating commit {} for release {}", the_sha, the_release.version);
+                info!(log, "Creating commit {} for release {}", the_sha, the_release.version);
 
                 create_commit(&connection, &the_sha, &the_author_name, &the_author_email, &the_release);
             },
         };
     }
+}
+
+pub fn releases() -> Vec<Value> {
+    use schema::releases::dsl::*;
+    use models::Release;
+
+    let connection = establish_connection();
+    let results = releases.filter(version.ne("master"))
+        .load::<Release>(&connection)
+        .expect("Error loading releases");
+
+    results.into_iter()
+        .rev()
+        .map(|r| Value::String(r.version))
+        .collect()
+}
+
+pub fn scores() -> Vec<Value> {
+    use schema::commits::dsl::*;
+    use diesel::expression::dsl::sql;
+    use diesel::types::BigInt;
+
+    let connection = establish_connection();
+
+    let scores: Vec<_> =
+        commits
+        .select((author_name, sql::<BigInt>("COUNT(author_name) AS author_count")))
+        .group_by(author_name)
+        .order(sql::<BigInt>("author_count").desc())
+        .load(&connection)
+        .unwrap();
+
+    // these variables are used to calculate the ranking
+    let mut rank = 0; // incremented every time
+    let mut last_rank = 0; // the current rank
+    let mut last_score = 0; // the previous entry's score
+
+    scores.into_iter().map(|(author, score)| {
+        // we always increment the ranking
+        rank += 1;
+
+        // if we've hit a different score...
+        if last_score != score {
+
+            // then we need to save these values for the future iteration
+            last_rank = rank;
+            last_score = score;
+        }
+
+        let mut json_score: BTreeMap<String, Value> = BTreeMap::new();
+
+        // we use last_rank here so that we get duplicate ranks for people
+        // with the same number of commits
+        json_score.insert("rank".to_string(), Value::I64(last_rank));
+
+        json_score.insert("author".to_string(), Value::String(author));
+        json_score.insert("commits".to_string(), Value::I64(score));
+
+        Value::Object(json_score)
+    }).collect()
+}
+
+pub fn names(release_name: &str) -> Option<Vec<Value>> {
+    use schema::releases::dsl::*;
+    use schema::commits::dsl::*;
+    use models::Release;
+    use models::Commit;
+
+    let connection = establish_connection();
+
+    let release: Release = match releases.filter(version.eq(release_name))
+        .first(&connection) {
+            Ok(release) => release,
+                Err(_) => {
+                    return None;
+                },
+        };
+
+    // it'd be better to do this in the db
+    // but Postgres doesn't do Unicode collation correctly on OSX
+    // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
+    let mut names: Vec<String> = Commit::belonging_to(&release)
+        .select(author_name).distinct().load(&connection).unwrap();
+
+    inaccurate_sort(&mut names);
+
+    Some(names.into_iter().map(Value::String).collect())
 }

@@ -1,7 +1,7 @@
 CREATE TABLE contributors (
     id SERIAL NOT NULL,
-    name VARCHAR,
-    email VARCHAR
+    name VARCHAR NOT NULL,
+    email VARCHAR NOT NULL
 );
 
 ALTER TABLE ONLY contributors

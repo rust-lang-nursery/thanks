@@ -20,33 +20,51 @@ fn main() {
             .help("filepath of the rust source code")
             .takes_value(true)
             .required(true))
+        .arg(Arg::with_name("project_name")
+            .short("n")
+            .long("name")
+            .help("name of the project")
+            .takes_value(true)
+            .required(true))
+        .arg(Arg::with_name("version")
+            .short("v")
+            .long("version")
+            .help("new version number")
+            .takes_value(true)
+            .required(true))
         .get_matches();
     let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
 
+    // get name
+    let project_name = matches.value_of("project_name").unwrap();
+    info!(&log, "Project name: {}", project_name);
+    // get version
+    let new_release_name = matches.value_of("version").unwrap();
+    info!(&log, "New version: {}", project_name);
+    // get path
+    let path = matches.value_of("filepath").unwrap();
+    info!(&log, "Path to {} repo: {}", project_name, path);
+
     use contributors::schema::releases::dsl::*;
     use contributors::models::Release;
+    use contributors::schema::projects::dsl::{projects, name};
+    use contributors::models::Project;
 
     let connection = contributors::establish_connection();
 
-    let release: Release = releases.order(id.desc()).first(&connection).unwrap();
-
-    let num: u64 = release.version.split(".").nth(1).unwrap().parse().unwrap();
-    let new_release = num + 1;
-    let new_release_name = format!("1.{}.0", new_release);
+    let project = projects.filter(name.eq(project_name)).first::<Project>(&connection).expect("Unknown project!");
+    let release = Release::belonging_to(&project).order(id.desc()).first::<Release>(&connection).unwrap();
 
     info!(log, "Previous release: {}", release.version);
     info!(log, "Creating new release release: {}", new_release_name);
 
-    if releases.filter(version.eq(&new_release_name)).first::<Release>(&connection).is_ok() {
+    if Release::belonging_to(&project).filter(version.eq(&new_release_name)).first::<Release>(&connection).is_ok() {
        panic!("Release {} already exists! Something must be wrong.", new_release_name);
     }
 
-    let path = matches.value_of("filepath").unwrap();
-    info!(log, "Path to rust repo: {}", path);
-
-    let new_release = contributors::create_release(&connection, &new_release_name);
+    let new_release = contributors::create_release(&connection, &new_release_name, project.id);
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);
-    contributors::assign_commits(&new_release.version, &release.version, &path);
+    contributors::assign_commits(&new_release.version, &release.version, project.id, &path);
 }

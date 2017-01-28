@@ -17,6 +17,10 @@ name = "update-commit-db"
 path = "src/bin/update-commit-db.rs"
 doc = false
 [[bin]]
+name = "new-release"
+path = "src/bin/new-release.rs"
+doc = false
+[[bin]]
 name = "the-big-red-button"
 path = "src/bin/the-big-red-button.rs"
 doc = false

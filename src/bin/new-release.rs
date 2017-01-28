@@ -48,5 +48,5 @@ fn main() {
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);
-    contributors::assign_commits(&new_release.version, &release.version, &path);
+    contributors::assign_commits(&log, &new_release.version, &release.version, &path);
 }

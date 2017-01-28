@@ -50,7 +50,7 @@ Import data from the repo:
 
 ```bash
 $ cd - # go back to our app
-$ cargo run --bin populate -- --name Rust --path ~/src/rust --link https://github.com/rust-lang/rust # or whever you put the Rust source
+$ cargo run --bin populate -- --name Rust --github rust-lang/rust --link rust --path ~/src/rust # or whever you put the Rust source
 ```
 
 This will take a few minutes. At the time of writing, Rust has about 61,000
@@ -76,13 +76,15 @@ If you're working on the `populate` binary, it's useful to be able to quickly
 drop your local database:
 
 ```bash
-$ cargo run --bin the-big-red-button
+$ cargo run --bin the-big-red-button --all
 ```
+
+You can also delete only one project by passing `--name NAME` option.
 
 When it's time for a new release,
 
 ```bash
-$ cargo run --bin new-release -- --path ~/src/rust # or wherever your Rust is
+$ cargo run --bin new-release -- --name Rust --version 1.15.0 --path ~/src/rust # or wherever your Rust is
 ```
 
 As often as you want to update, run

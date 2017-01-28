@@ -33,6 +33,7 @@ fn main() {
             .takes_value(true)
             .required(true))
         .get_matches();
+
     let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
 
     // get name
@@ -56,7 +57,7 @@ fn main() {
     let release = Release::belonging_to(&project).order(id.desc()).first::<Release>(&connection).unwrap();
 
     info!(log, "Previous release: {}", release.version);
-    info!(log, "Creating new release release: {}", new_release_name);
+    info!(log, "Creating new release: {}", new_release_name);
 
     if Release::belonging_to(&project).filter(version.eq(&new_release_name)).first::<Release>(&connection).is_ok() {
        panic!("Release {} already exists! Something must be wrong.", new_release_name);
@@ -66,5 +67,5 @@ fn main() {
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);
-    contributors::assign_commits(&new_release.version, &release.version, project.id, &path);
+    contributors::assign_commits(&log, &new_release.version, &release.version, project.id, &path);
 }

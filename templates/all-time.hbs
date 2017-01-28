@@ -1,27 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Rust Contributors</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="public/styles/bootstrap.css"/>
-    <link rel="stylesheet" href="public/styles/styles.css"/>
-    <link rel="stylesheet" href="public/styles/custom.css"/>
-  </head>
-  <body class="container">
-    <div class="center">
-      <h1 class="jumbo">
-        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
-        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
-        Thanks!
-        <img src="public/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
-        <img src="public/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
-      </h1>
+{{#*inline "content"}}
       <h2>Rust All-time Contributors</h2>
       <p><a href="../">Back to all releases</a></p>
 
       <p>We have had {{ count }} individuals contribute to Rust. Thank you so much!</p>
-    
+
       <table class="table table-striped">
         <thead>
           <tr>
@@ -36,6 +18,5 @@
           {{/each}}
         </tbody>
       </table>
-    </div>
-  </body>
-</html>
+{{/inline}}
+{{~> (parent)~}}

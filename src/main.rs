@@ -22,20 +22,25 @@ use hyper::server::{Request, Response};
 
 use handlebars::Handlebars;
 
-use std::collections::BTreeMap;
 use std::env;
-use std::io::prelude::*;
-use std::fs::File;
+use std::path::Path;
 
 use serde_json::value::Value;
 
 use slog::DrainExt;
 
+// Rename type for crate
+type BTreeMap = std::collections::BTreeMap<String, Value>;
+
 fn main() {
     dotenv::dotenv().ok();
-    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
+    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(),
+                                 o!("version" => env!("CARGO_PKG_VERSION")));
 
-    let addr = format!("0.0.0.0:{}", env::args().nth(1).unwrap_or(String::from("1337"))).parse().unwrap();
+    let addr = format!("0.0.0.0:{}",
+                       env::args().nth(1).unwrap_or(String::from("1337")))
+        .parse()
+        .unwrap();
 
     let server = http::Server;
     let mut contributors = http::Contributors::new();
@@ -45,7 +50,7 @@ fn main() {
     contributors.add_route("/about", about);
 
     contributors.add_route("/all-time", all_time);
-    
+
     // * is the catch-all route
     contributors.add_route("*", catch_all);
 
@@ -55,78 +60,55 @@ fn main() {
 }
 
 fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
-    let handlebars = Handlebars::new();
+    let mut data: BTreeMap = BTreeMap::new();
 
-    let mut f = File::open("templates/index.hbs").unwrap();
-    let mut source = String::new();
 
-    f.read_to_string(&mut source).unwrap();
+    data.insert("releases".to_string(),
+                Value::Array(contributors::releases()));
 
-    let mut data: BTreeMap<String, Value> = BTreeMap::new();
-
-    data.insert("releases".to_string(), Value::Array(contributors::releases()));
+    let template = build_template(&data, "templates/index.hbs");
 
     ::futures::finished(Response::new()
-                        .with_header(ContentType::html())
-                        .with_body(handlebars.template_render(&source, &data).unwrap())
-                       )
+        .with_header(ContentType::html())
+        .with_body(template))
 }
 
 fn about(_: Request) -> futures::Finished<Response, hyper::Error> {
-    let handlebars = Handlebars::new();
+    let data: BTreeMap = BTreeMap::new();
 
-    let mut f = File::open("templates/about.hbs").unwrap();
-    let mut source = String::new();
-
-    f.read_to_string(&mut source).unwrap();
-
-    let data: BTreeMap<String, Value> = BTreeMap::new();
+    let template = build_template(&data, "templates/about.hbs");
 
     ::futures::finished(Response::new()
-                        .with_header(ContentType::html())
-                        .with_body(handlebars.template_render(&source, &data).unwrap())
-                       )
+        .with_header(ContentType::html())
+        .with_body(template))
 }
 
 fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
-    let handlebars = Handlebars::new();
-
-    let mut source = String::new();
-
-    let mut data: BTreeMap<String, Value> = BTreeMap::new();
-
-    let mut f = File::open("templates/all-time.hbs").unwrap();
-
-    f.read_to_string(&mut source).unwrap();
+    let mut data: BTreeMap = BTreeMap::new();
 
     let scores = contributors::scores();
 
-    data.insert("release".to_string(), Value::String(String::from("all-time")));
+    data.insert("release".to_string(),
+                Value::String(String::from("all-time")));
     data.insert("count".to_string(), Value::U64(scores.len() as u64));
     data.insert("scores".to_string(), Value::Array(scores));
 
+    let template = build_template(&data, "templates/all-time.hbs");
+
     ::futures::finished(Response::new()
-                        .with_header(ContentType::html())
-                        .with_body(handlebars.template_render(&source, &data).unwrap())
-                       )
+        .with_header(ContentType::html())
+        .with_body(template))
 }
 
 fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
     let path = req.path();
 
-    let handlebars = Handlebars::new();
-
-    let mut source = String::new();
-
-    let mut data: BTreeMap<String, Value> = BTreeMap::new();
+    let mut data: BTreeMap = BTreeMap::new();
 
     // strip the leading `/` lol
     let release_name = path[1..].to_string();
 
     data.insert("release".to_string(), Value::String(release_name.clone()));
-
-    let mut f = File::open("templates/release.hbs").unwrap();
-    f.read_to_string(&mut source).unwrap();
 
     let names = contributors::names(&release_name);
 
@@ -134,15 +116,33 @@ fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
         Some(names) => {
             data.insert("count".to_string(), Value::U64(names.len() as u64));
             data.insert("names".to_string(), Value::Array(names));
-        },
+        }
         None => {
-            return ::futures::finished(Response::new()
-                                       .with_status(StatusCode::NotFound));
+            return ::futures::finished(Response::new().with_status(StatusCode::NotFound));
         }
     }
 
+    let template = build_template(&data, "templates/release.hbs");
+
     ::futures::finished(Response::new()
-                        .with_header(ContentType::html())
-                        .with_body(handlebars.template_render(&source, &data).unwrap())
-                       )
+        .with_header(ContentType::html())
+        .with_body(template))
+}
+
+/// Constructs Handlebars template from the provided variable data. Uses partial templates
+/// to produce consistent container.
+fn build_template(data: &BTreeMap, template_path: &str) -> String {
+    let mut handlebars = Handlebars::new();
+    // Render the partials
+    handlebars.register_template_file("container", &Path::new("templates/container.hbs"))
+        .ok()
+        .unwrap();
+    handlebars.register_template_file("index", &Path::new(template_path)).ok().unwrap();
+    let mut data = data.clone();
+    // Add name of the container to be loaded (just a constant for now)
+    data.insert("parent".to_string(), Value::String("container".to_string()));
+
+    // That's all we need to build this thing
+    handlebars.render("index", &data).unwrap()
+
 }

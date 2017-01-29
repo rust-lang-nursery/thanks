@@ -12,7 +12,7 @@ This web application shows people who have contributed to Rust.
 You'll need nightly Rust for now. This will change with Rust 1.15, when
 this will run on stable.
 
-Get the app set up. You'll need postgres installed. And sqlite3 headers I
+Get the app set up. You'll need [postgres](diesel_steup.md) installed. And [sqlite3 headers](diesel_steup.md) I
 think.
 
 Clone it:

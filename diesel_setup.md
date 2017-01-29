@@ -1,6 +1,9 @@
 # Diesel setup
+
 These were the tasks I needed to perform before I could get diesel_cli installed.
+
 ## Ubunutu
+
 These are the packages referenced in the README that need to be installed for postgresql and sqlite 3:
 * `postgresql`
 * `postgresql-contrib`

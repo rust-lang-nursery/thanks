@@ -49,7 +49,7 @@ fn main() {
 
     contributors.add_route("/about", about);
 
-    contributors.add_route("/all-time", all_time);
+    contributors.add_route("/rust/all-time", all_time);
 
     // * is the catch-all route
     contributors.add_route("*", catch_all);
@@ -103,10 +103,16 @@ fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
 fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
     let path = req.path();
 
+    if !path.starts_with("/rust/") {
+        return ::futures::finished(Response::new()
+                                   .with_header(ContentType::html())
+                                   .with_status(StatusCode::NotFound));
+    }
+
     let mut data: BTreeMap = BTreeMap::new();
 
-    // strip the leading `/` lol
-    let release_name = path[1..].to_string();
+    // strip the leading `/rust/` lol
+    let release_name = path[6..].to_string();
 
     data.insert("release".to_string(), Value::String(release_name.clone()));
 

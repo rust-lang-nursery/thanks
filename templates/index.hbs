@@ -4,10 +4,9 @@
       <p>
       <h2>Releases:</h2>
       <ul>
-        <li><a href="all-time">All time</li>
-        <li><a href="master">Unreleased (on the master branch, not in a release yet)</a></li>
+        <li><a href="/rust/all-time">All time</li>
         {{#each releases as |release| }}
-          <li><a href="{{ release }}">{{ release }}</a></li>
+          <li><a href="/rust/{{ release }}">{{ release }}</a></li>
         {{/each}}
       </ul>
 {{/inline}}

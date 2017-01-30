@@ -216,9 +216,18 @@ pub fn assign_commits(log: &slog::Logger, release_name: &str, previous_release: 
 pub fn releases() -> Vec<Value> {
     use schema::releases::dsl::*;
     use models::Release;
+    use models::Project;
 
     let connection = establish_connection();
-    let results = releases.filter(version.ne("master"))
+
+    let project = {
+        use schema::projects::dsl::*;
+        projects.filter(name.eq("Rust"))
+            .first::<Project>(&connection)
+        .expect("Error finding the Rust project")
+    };
+
+    let results = releases.filter(project_id.eq(project.id))
         .load::<Release>(&connection)
         .expect("Error loading releases");
 

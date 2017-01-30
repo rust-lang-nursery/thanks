@@ -51,6 +51,11 @@ Import data from the repo:
 ```bash
 $ cd - # go back to our app
 $ cargo run --bin populate -- --name Rust --github rust-lang/rust --link rust --path ~/src/rust # or whever you put the Rust source
+$ cargo run --bin populate -- \
+    --name Rust \
+    --github rust-lang/rust \
+    --url https://github.com/rust-lang/rust/ \
+    --path ~/src/rust # or wherever you put the Rust source
 ```
 
 This will take a few minutes. At the time of writing, Rust has about 61,000

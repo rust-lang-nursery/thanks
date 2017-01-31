@@ -50,7 +50,6 @@ Import data from the repo:
 
 ```bash
 $ cd - # go back to our app
-$ cargo run --bin populate -- --name Rust --github rust-lang/rust --link rust --path ~/src/rust # or whever you put the Rust source
 $ cargo run --bin populate -- \
     --name Rust \
     --github rust-lang/rust \

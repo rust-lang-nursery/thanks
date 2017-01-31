@@ -103,7 +103,7 @@ fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
         .with_body(template))
 }
 
-fn release(req: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
+fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
     let mut data: BTreeMap = BTreeMap::new();
 
     let project = cap.get(1).unwrap();

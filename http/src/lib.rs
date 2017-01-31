@@ -66,7 +66,6 @@ impl Contributors {
     }
 
     pub fn add_route(&mut self, path: &str, handler: fn(Request) -> ::futures::Finished<Response, hyper::Error>) {
-
         let path = path.to_string();
 
         self.routes.push(Route::Literal {
@@ -76,7 +75,6 @@ impl Contributors {
     }
 
     pub fn add_regex_route(&mut self, regex: &str, handler: fn(&Request, Captures) -> ::futures::Finished<Response, hyper::Error>) {
-
         self.routes.push(Route::Regex {
             regex: Regex::new(regex).unwrap(),
             handler: handler,

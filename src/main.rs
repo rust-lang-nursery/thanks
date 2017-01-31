@@ -8,6 +8,8 @@ extern crate handlebars;
 
 extern crate hyper;
 
+extern crate regex;
+
 extern crate serde_json;
 
 #[macro_use]
@@ -21,6 +23,8 @@ use hyper::header::ContentType;
 use hyper::server::{Request, Response};
 
 use handlebars::Handlebars;
+
+use regex::Captures;
 
 use std::env;
 use std::path::Path;
@@ -50,12 +54,29 @@ fn main() {
     contributors.add_route("/about", about);
 
     contributors.add_route("/rust/all-time", all_time);
+    
+    contributors.add_regex_route("/regex/(\\w+)", regex);
 
     contributors.add_catch_all_route(catch_all);
 
     info!(log, "Starting server, listening on http://{}", addr);
 
     server.run(&addr, contributors);
+}
+
+fn regex(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
+    let mut data: BTreeMap = BTreeMap::new();
+
+    let word = cap.get(1).unwrap();
+    let word = word.as_str();
+
+    data.insert(String::from("word"), Value::String(String::from(word)));
+
+    let template = build_template(&data, "templates/regex.hbs");
+
+    ::futures::finished(Response::new()
+        .with_header(ContentType::html())
+        .with_body(template))
 }
 
 fn root(_: Request) -> futures::Finished<Response, hyper::Error> {

@@ -1,11 +1,13 @@
 extern crate futures;
-
 extern crate hyper;
+extern crate regex;
 extern crate reqwest;
 
 use hyper::StatusCode;
 use hyper::header::{ContentType, Location};
 use hyper::server::{Http, Service, Request, Response};
+
+use regex::{Regex, Captures};
 
 use std::io::prelude::*;
 use std::fs::File;
@@ -17,20 +19,39 @@ pub struct Contributors {
     catch_all_route: Option<fn(Request) -> ::futures::Finished<Response, hyper::Error>>,
 }
 
-pub enum RouteKind {
-    Literal(String),
-}
-
-pub struct Route {
-    kind: RouteKind,
-    handler: fn(Request) -> ::futures::Finished<Response, hyper::Error>,
+pub enum Route {
+    Literal {
+        path: String,
+        handler: fn(Request) -> ::futures::Finished<Response, hyper::Error>,
+    },
+    Regex {
+        regex: Regex,
+        handler: fn(&Request, Captures) -> ::futures::Finished<Response, hyper::Error>,
+    },
 }
 
 impl Route {
     fn matches(&self, path: &str) -> bool {
-        match self.kind {
-            RouteKind::Literal(ref s) => {
-                s == path
+        match self {
+            &Route::Literal { path: ref p, .. } => {
+                p == path
+            },
+            &Route::Regex { ref regex, .. } => {
+                regex.is_match(path)
+            },
+        }
+    }
+
+    fn handle(&self, req: Request) -> ::futures::Finished<Response, hyper::Error> {
+        match self {
+            &Route::Literal { handler, .. } => {
+                handler(req)
+            },
+            &Route::Regex { handler, ref regex } => {
+                // i am extremely suspicous of this unwrap
+                let captures = regex.captures(req.path()).unwrap();
+
+                handler(&req, captures)
             },
         }
     }
@@ -44,13 +65,22 @@ impl Contributors {
         }
     }
 
-    pub fn add_route(&mut self, path: &str, f: fn(Request) -> ::futures::Finished<Response, hyper::Error>) {
-        let route = Route {
-            kind: RouteKind::Literal(path.to_string()),
-            handler: f,
-        };
+    pub fn add_route(&mut self, path: &str, handler: fn(Request) -> ::futures::Finished<Response, hyper::Error>) {
 
-        self.routes.push(route);
+        let path = path.to_string();
+
+        self.routes.push(Route::Literal {
+            path: path,
+            handler: handler,
+        });
+    }
+
+    pub fn add_regex_route(&mut self, regex: &str, handler: fn(&Request, Captures) -> ::futures::Finished<Response, hyper::Error>) {
+
+        self.routes.push(Route::Regex {
+            regex: Regex::new(regex).unwrap(),
+            handler: handler,
+        });
     }
 
     pub fn add_catch_all_route(&mut self, f: fn(Request) -> ::futures::Finished<Response, hyper::Error>) {
@@ -101,7 +131,7 @@ impl Service for Contributors {
         
         for route in &self.routes {
             if route.matches(req.path()) {
-                return (route.handler)(req);
+                return route.handle(req);
             }
         }
 

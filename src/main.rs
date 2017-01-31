@@ -55,7 +55,7 @@ fn main() {
 
     contributors.add_route("/rust/all-time", all_time);
     
-    contributors.add_regex_route("/rust/(.+)", release);
+    contributors.add_regex_route("/([^/]+)/(.+)", release);
 
     info!(log, "Starting server, listening on http://{}", addr);
 
@@ -106,12 +106,15 @@ fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
 fn release(req: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
     let mut data: BTreeMap = BTreeMap::new();
 
-    let release_name = cap.get(1).unwrap();
+    let project = cap.get(1).unwrap();
+    let project = project.as_str();
+
+    let release_name = cap.get(2).unwrap();
     let release_name = release_name.as_str();
 
     data.insert("release".to_string(), Value::String(release_name.to_string()));
 
-    let names = contributors::names(&release_name);
+    let names = contributors::names(project, release_name);
 
     match names {
         Some(names) => {

@@ -282,7 +282,11 @@ pub fn scores() -> Vec<Value> {
     }).collect()
 }
 
-pub fn names(release_name: &str) -> Option<Vec<Value>> {
+// needed for case-insensitivity
+use diesel::types::VarChar;
+sql_function!(lower, lower_t, (x: VarChar) -> VarChar);
+
+pub fn names(project: &str, release_name: &str) -> Option<Vec<Value>> {
     use schema::releases::dsl::*;
     use schema::commits::dsl::*;
     use models::Release;
@@ -290,7 +294,21 @@ pub fn names(release_name: &str) -> Option<Vec<Value>> {
 
     let connection = establish_connection();
 
-    let release: Release = match releases.filter(version.eq(release_name))
+    let project = {
+        use schema::projects::dsl::*;
+
+        match projects.filter(lower(name).eq(lower(project)))
+            .first::<Project>(&connection) {
+                Ok(p) => p,
+                Err(_) => {
+                    return None;
+                }
+        }
+    };
+
+    let release: Release = match releases
+        .filter(version.eq(release_name))
+        .filter(project_id.eq(project.id))
         .first(&connection) {
             Ok(release) => release,
                 Err(_) => {

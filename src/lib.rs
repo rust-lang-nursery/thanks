@@ -63,29 +63,6 @@ pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str
 
 
 
-pub fn releases() -> Vec<Value> {
-    use schema::releases::dsl::*;
-    use models::Release;
-    use models::Project;
-
-    let connection = establish_connection();
-
-    let project = {
-        use schema::projects::dsl::*;
-        projects.filter(name.eq("Rust"))
-            .first::<Project>(&connection)
-        .expect("Error finding the Rust project")
-    };
-
-    let results = releases.filter(project_id.eq(project.id))
-        .load::<Release>(&connection)
-        .expect("Error loading releases");
-
-    results.into_iter()
-        .rev()
-        .map(|r| Value::String(r.version))
-        .collect()
-}
 
 pub fn scores() -> Vec<Value> {
     use schema::commits::dsl::*;

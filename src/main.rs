@@ -67,7 +67,7 @@ fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
 
 
     data.insert("releases".to_string(),
-                Value::Array(contributors::releases()));
+                Value::Array(contributors::releases::all()));
 
     let template = build_template(&data, "templates/index.hbs");
 

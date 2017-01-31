@@ -198,3 +198,27 @@ fn char_cmp(a_char: char, b_char: char) -> Ordering {
 
     order
 }
+
+pub fn all() -> Vec<Value> {
+    use schema::releases::dsl::*;
+    use models::Release;
+    use models::Project;
+
+    let connection = ::establish_connection();
+
+    let project = {
+        use schema::projects::dsl::*;
+        projects.filter(name.eq("Rust"))
+            .first::<Project>(&connection)
+        .expect("Error finding the Rust project")
+    };
+
+    let results = releases.filter(project_id.eq(project.id))
+        .load::<Release>(&connection)
+        .expect("Error loading releases");
+
+    results.into_iter()
+        .rev()
+        .map(|r| Value::String(r.version))
+        .collect()
+}

@@ -55,28 +55,11 @@ fn main() {
 
     contributors.add_route("/rust/all-time", all_time);
     
-    contributors.add_regex_route("/regex/(\\w+)", regex);
-
-    contributors.add_catch_all_route(catch_all);
+    contributors.add_regex_route("/rust/(.+)", release);
 
     info!(log, "Starting server, listening on http://{}", addr);
 
     server.run(&addr, contributors);
-}
-
-fn regex(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
-    let mut data: BTreeMap = BTreeMap::new();
-
-    let word = cap.get(1).unwrap();
-    let word = word.as_str();
-
-    data.insert(String::from("word"), Value::String(String::from(word)));
-
-    let template = build_template(&data, "templates/regex.hbs");
-
-    ::futures::finished(Response::new()
-        .with_header(ContentType::html())
-        .with_body(template))
 }
 
 fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
@@ -120,21 +103,13 @@ fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
         .with_body(template))
 }
 
-fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
-    let path = req.path();
-
-    if !path.starts_with("/rust/") {
-        return ::futures::finished(Response::new()
-                                   .with_header(ContentType::html())
-                                   .with_status(StatusCode::NotFound));
-    }
-
+fn release(req: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
     let mut data: BTreeMap = BTreeMap::new();
 
-    // strip the leading `/rust/` lol
-    let release_name = path[6..].to_string();
+    let release_name = cap.get(1).unwrap();
+    let release_name = release_name.as_str();
 
-    data.insert("release".to_string(), Value::String(release_name.clone()));
+    data.insert("release".to_string(), Value::String(release_name.to_string()));
 
     let names = contributors::names(&release_name);
 

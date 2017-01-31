@@ -99,7 +99,7 @@ fn main() {
     info!(log, "GitHub name: {}", github_name);
 
     // create project
-    let project = contributors::create_project(&connection, project_name, url_path, github_name);
+    let project = contributors::projects::create(&connection, project_name, url_path, github_name);
 
     // Create releases
     // Infer them from git tags

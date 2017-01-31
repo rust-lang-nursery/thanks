@@ -27,7 +27,11 @@ extern crate slog_term;
 pub mod schema;
 pub mod models;
 
-use self::models::{Project, NewProject};
+pub mod projects;
+pub mod releases;
+pub mod commits;
+
+use self::models::Project;
 use self::models::{Commit, NewCommit};
 use self::models::{Release, NewRelease};
 
@@ -57,20 +61,6 @@ pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str
     diesel::insert(&new_commit).into(commits::table)
         .get_result(conn)
         .expect("Error saving new commit")
-}
-
-pub fn create_project(conn: &PgConnection, name: &str, url_path: &str, github_name: &str) -> Project {
-    use schema::projects;
-
-    let new_project = NewProject {
-        name: name,
-        url_path: url_path,
-        github_name: github_name
-    };
-
-    diesel::insert(&new_project).into(projects::table)
-        .get_result(conn)
-        .expect("Error saving new project")
 }
 
 

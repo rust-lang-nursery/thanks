@@ -114,7 +114,7 @@ fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Err
 
     data.insert("release".to_string(), Value::String(release_name.to_string()));
 
-    let names = contributors::names(project, release_name);
+    let names = contributors::releases::contributors(project, release_name);
 
     match names {
         Some(names) => {

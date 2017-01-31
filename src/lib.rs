@@ -32,7 +32,7 @@ pub mod commits;
 
 use self::models::Project;
 use self::models::{Commit, NewCommit};
-use self::models::{Release, NewRelease};
+use self::models::Release;
 
 use unicode_normalization::UnicodeNormalization;
 
@@ -62,19 +62,6 @@ pub fn create_commit<'a>(conn: &PgConnection, sha: &'a str, author_name: &'a str
         .expect("Error saving new commit")
 }
 
-
-pub fn create_release(conn: &PgConnection, version: &str, project_id: i32) -> Release {
-    use schema::releases;
-
-    let new_release = NewRelease {
-        version: version,
-        project_id: project_id,
-    };
-
-    diesel::insert(&new_release).into(releases::table)
-        .get_result(conn)
-        .expect("Error saving new release")
-}
 
 
 fn char_cmp(a_char: char, b_char: char) -> Ordering {

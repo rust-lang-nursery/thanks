@@ -131,10 +131,10 @@ fn main() {
 
     let releases: Vec<&str> = releases.collect();
     for release in releases.iter() {
-        contributors::create_release(&connection, release, project.id);
+        contributors::releases::create(&connection, release, project.id);
     }
     // And create the release for all commits that are not released yet
-    contributors::create_release(&connection, "master", project.id);
+    contributors::releases::create(&connection, "master", project.id);
 
     // create most commits
     //

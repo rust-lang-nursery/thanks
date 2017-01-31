@@ -1,4 +1,7 @@
+use models::{Release, NewRelease};
+
 use diesel;
+use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
 use std::process::Command;
@@ -81,5 +84,18 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
             },
         };
     }
+}
+
+pub fn create(conn: &PgConnection, version: &str, project_id: i32) -> Release {
+    use schema::releases;
+
+    let new_release = NewRelease {
+        version: version,
+        project_id: project_id,
+    };
+
+    diesel::insert(&new_release).into(releases::table)
+        .get_result(conn)
+        .expect("Error saving new release")
 }
 

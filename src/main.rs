@@ -51,8 +51,7 @@ fn main() {
 
     contributors.add_route("/rust/all-time", all_time);
 
-    // * is the catch-all route
-    contributors.add_route("*", catch_all);
+    contributors.add_catch_all_route(catch_all);
 
     info!(log, "Starting server, listening on http://{}", addr);
 

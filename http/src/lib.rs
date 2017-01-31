@@ -7,25 +7,54 @@ use hyper::StatusCode;
 use hyper::header::{ContentType, Location};
 use hyper::server::{Http, Service, Request, Response};
 
-use std::collections::HashMap;
 use std::io::prelude::*;
 use std::fs::File;
 use std::net::SocketAddr;
 use std::path::Path;
 
 pub struct Contributors {
-    routes: HashMap<String, fn(Request) -> ::futures::Finished<Response, hyper::Error>>,
+    routes: Vec<Route>,
+    catch_all_route: Option<fn(Request) -> ::futures::Finished<Response, hyper::Error>>,
+}
+
+pub enum RouteKind {
+    Literal(String),
+}
+
+pub struct Route {
+    kind: RouteKind,
+    handler: fn(Request) -> ::futures::Finished<Response, hyper::Error>,
+}
+
+impl Route {
+    fn matches(&self, path: &str) -> bool {
+        match self.kind {
+            RouteKind::Literal(ref s) => {
+                s == path
+            },
+        }
+    }
 }
 
 impl Contributors {
     pub fn new() -> Contributors {
         Contributors {
-            routes: HashMap::new(),
+            routes: Vec::new(),
+            catch_all_route: None,
         }
     }
 
     pub fn add_route(&mut self, path: &str, f: fn(Request) -> ::futures::Finished<Response, hyper::Error>) {
-        self.routes.insert(path.to_string(), f);
+        let route = Route {
+            kind: RouteKind::Literal(path.to_string()),
+            handler: f,
+        };
+
+        self.routes.push(route);
+    }
+
+    pub fn add_catch_all_route(&mut self, f: fn(Request) -> ::futures::Finished<Response, hyper::Error>) {
+        self.catch_all_route = Some(f);
     }
 }
 
@@ -70,19 +99,19 @@ impl Service for Contributors {
 
         // next, we check routes
         
-        let handler = if let Some(h) = self.routes.get(req.path()) {
-            h
-        } else if let Some(h) = self.routes.get("*") {
-            // * is the catch all route
-            h
-        } else {
-            // if we get here, we didn't find anything
-            return ::futures::finished(Response::new()
-                .with_header(ContentType::html())
-                .with_status(StatusCode::NotFound));
-        };
+        for route in &self.routes {
+            if route.matches(req.path()) {
+                return (route.handler)(req);
+            }
+        }
 
-        handler(req)
+        if let Some(h) = self.catch_all_route {
+            return h(req);
+        }
+
+        ::futures::finished(Response::new()
+                            .with_header(ContentType::html())
+                            .with_status(StatusCode::NotFound))
     }
 }
 

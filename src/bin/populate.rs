@@ -177,7 +177,7 @@ fn main() {
 
             // We tag all commits initially to the first release. Each release will
             // set this properly below.
-            contributors::create_commit(&connection, &sha, &author_name, &author_email, &first_release);
+            contributors::commits::create(&connection, &sha, &author_name, &author_email, &first_release);
         }
     }
 

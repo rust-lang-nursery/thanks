@@ -82,7 +82,7 @@ fn update_commit_db(log: &slog::Logger, project: &Project, connection: &PgConnec
             Err(_) => {
                 info!(log, "Creating commit {} for release {}", object.sha, master_release.version);
                 // this commit will be part of master
-                contributors::create_commit(connection, &object.sha, &object.commit.author.name, &object.commit.author.email, &master_release);
+                contributors::commits::create(connection, &object.sha, &object.commit.author.name, &object.commit.author.email, &master_release);
             },
         };
     }

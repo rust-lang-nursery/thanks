@@ -92,7 +92,7 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
 
                 info!(log, "Creating commit {} for release {}", the_sha, the_release.version);
 
-                ::create_commit(&connection, &the_sha, &the_author_name, &the_author_email, &the_release);
+                ::commits::create(&connection, &the_sha, &the_author_name, &the_author_email, &the_release);
             },
         };
     }

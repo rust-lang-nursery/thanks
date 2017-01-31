@@ -8,6 +8,8 @@ extern crate handlebars;
 
 extern crate hyper;
 
+extern crate regex;
+
 extern crate serde_json;
 
 #[macro_use]
@@ -21,6 +23,8 @@ use hyper::header::ContentType;
 use hyper::server::{Request, Response};
 
 use handlebars::Handlebars;
+
+use regex::Captures;
 
 use std::env;
 use std::path::Path;
@@ -50,9 +54,8 @@ fn main() {
     contributors.add_route("/about", about);
 
     contributors.add_route("/rust/all-time", all_time);
-
-    // * is the catch-all route
-    contributors.add_route("*", catch_all);
+    
+    contributors.add_regex_route("/rust/(.+)", release);
 
     info!(log, "Starting server, listening on http://{}", addr);
 
@@ -100,21 +103,13 @@ fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
         .with_body(template))
 }
 
-fn catch_all(req: Request) -> futures::Finished<Response, hyper::Error> {
-    let path = req.path();
-
-    if !path.starts_with("/rust/") {
-        return ::futures::finished(Response::new()
-                                   .with_header(ContentType::html())
-                                   .with_status(StatusCode::NotFound));
-    }
-
+fn release(req: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
     let mut data: BTreeMap = BTreeMap::new();
 
-    // strip the leading `/rust/` lol
-    let release_name = path[6..].to_string();
+    let release_name = cap.get(1).unwrap();
+    let release_name = release_name.as_str();
 
-    data.insert("release".to_string(), Value::String(release_name.clone()));
+    data.insert("release".to_string(), Value::String(release_name.to_string()));
 
     let names = contributors::names(&release_name);
 

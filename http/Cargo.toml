@@ -15,6 +15,7 @@ dotenv = "0.8.0"
 caseless = "0.1.2"
 unicode-normalization = "0.1.0"
 clap = "2.19.0"
+regex = "0.2.1"
 
 [dependencies.handlebars]
 version = "0.24.1"

@@ -186,7 +186,7 @@ fn main() {
     for (i, v1) in releases.iter().enumerate() {
         let v2 = releases.get(i+1).unwrap_or(&master);
         println!("({}, {})", v1, v2);
-        contributors::assign_commits(&log, v2, v1, project.id, &path);
+        contributors::releases::assign_commits(&log, v2, v1, project.id, &path);
     }
 
 

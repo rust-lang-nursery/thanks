@@ -67,5 +67,5 @@ fn main() {
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);
-    contributors::assign_commits(&log, &new_release.version, &release.version, project.id, &path);
+    contributors::releases::assign_commits(&log, &new_release.version, &release.version, project.id, &path);
 }

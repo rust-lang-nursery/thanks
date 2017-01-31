@@ -67,7 +67,7 @@ fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
 
 
     data.insert("releases".to_string(),
-                Value::Array(contributors::releases()));
+                Value::Array(contributors::releases::all()));
 
     let template = build_template(&data, "templates/index.hbs");
 
@@ -114,7 +114,7 @@ fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Err
 
     data.insert("release".to_string(), Value::String(release_name.to_string()));
 
-    let names = contributors::names(project, release_name);
+    let names = contributors::releases::contributors(project, release_name);
 
     match names {
         Some(names) => {

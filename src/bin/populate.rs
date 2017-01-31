@@ -99,7 +99,7 @@ fn main() {
     info!(log, "GitHub name: {}", github_name);
 
     // create project
-    let project = contributors::create_project(&connection, project_name, url_path, github_name);
+    let project = contributors::projects::create(&connection, project_name, url_path, github_name);
 
     // Create releases
     // Infer them from git tags
@@ -131,10 +131,10 @@ fn main() {
 
     let releases: Vec<&str> = releases.collect();
     for release in releases.iter() {
-        contributors::create_release(&connection, release, project.id);
+        contributors::releases::create(&connection, release, project.id);
     }
     // And create the release for all commits that are not released yet
-    contributors::create_release(&connection, "master", project.id);
+    contributors::releases::create(&connection, "master", project.id);
 
     // create most commits
     //
@@ -177,7 +177,7 @@ fn main() {
 
             // We tag all commits initially to the first release. Each release will
             // set this properly below.
-            contributors::create_commit(&connection, &sha, &author_name, &author_email, &first_release);
+            contributors::commits::create(&connection, &sha, &author_name, &author_email, &first_release);
         }
     }
 
@@ -186,7 +186,7 @@ fn main() {
     for (i, v1) in releases.iter().enumerate() {
         let v2 = releases.get(i+1).unwrap_or(&master);
         println!("({}, {})", v1, v2);
-        contributors::assign_commits(&log, v2, v1, project.id, &path);
+        contributors::releases::assign_commits(&log, v2, v1, project.id, &path);
     }
 
 

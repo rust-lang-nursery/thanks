@@ -63,9 +63,9 @@ fn main() {
        panic!("Release {} already exists! Something must be wrong.", new_release_name);
     }
 
-    let new_release = contributors::create_release(&connection, &new_release_name, project.id);
+    let new_release = contributors::releases::create(&connection, &new_release_name, project.id);
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);
-    contributors::assign_commits(&log, &new_release.version, &release.version, project.id, &path);
+    contributors::releases::assign_commits(&log, &new_release.version, &release.version, project.id, &path);
 }

@@ -111,7 +111,7 @@ pub fn create(conn: &PgConnection, version: &str, project_id: i32) -> Release {
         .expect("Error saving new release")
 }
 
-pub fn contributors(project: &str, release_name: &str) -> Option<Vec<Value>> {
+pub fn thanks(project: &str, release_name: &str) -> Option<Vec<Value>> {
     use schema::releases::dsl::*;
     use schema::commits::dsl::*;
     use models::Release;

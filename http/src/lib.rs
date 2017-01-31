@@ -146,8 +146,8 @@ impl Service for Contributors {
 pub struct Server;
 
 impl Server {
-    pub fn run(&self, addr: &SocketAddr, contributors: Contributors) {
-        let a = std::sync::Arc::new(contributors);
+    pub fn run(&self, addr: &SocketAddr, thanks: Contributors) {
+        let a = std::sync::Arc::new(thanks);
 
         let server = Http::new().bind(addr, move || Ok(a.clone())).unwrap();
 

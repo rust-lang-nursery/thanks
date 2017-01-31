@@ -63,7 +63,7 @@ commits that will need to be processed.
 Run the server:
 
 ```bash
-$ cargo run --bin contributors
+$ cargo run --bin thanks
 ```
 
 Open your browser to the URL shown.
@@ -73,8 +73,15 @@ Open your browser to the URL shown.
 To access the database from the commannd line:
 
 ```bash
-psql -p 5432 -h localhost -U postgres -d rust_contributors
+psql -p 5432 -h localhost -U postgres -d rust_thanks
 ```
+
+If you have the database with the old name (`rust_contributors` or any
+other), you have two options:
+- use the old name in the above command, or:
+- run `psql -p 5432 -h localhost -U postgres`, rename the database by
+  running `ALTER DATABASE rust_contributors RENAME TO rust_thans` and edit
+  `.env` file to use the new name.
 
 If you're working on the `populate` binary, it's useful to be able to quickly
 drop your local database:

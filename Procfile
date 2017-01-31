@@ -1,1 +1,1 @@
-web: ./target/release/contributors $PORT
+web: ./target/release/thanks $PORT

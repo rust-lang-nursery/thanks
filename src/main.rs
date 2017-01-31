@@ -1,4 +1,4 @@
-extern crate contributors;
+extern crate thanks;
 
 extern crate dotenv;
 
@@ -47,19 +47,19 @@ fn main() {
         .unwrap();
 
     let server = http::Server;
-    let mut contributors = http::Contributors::new();
+    let mut thanks = http::Contributors::new();
 
-    contributors.add_route("/", root);
+    thanks.add_route("/", root);
 
-    contributors.add_route("/about", about);
+    thanks.add_route("/about", about);
 
-    contributors.add_route("/rust/all-time", all_time);
+    thanks.add_route("/rust/all-time", all_time);
     
-    contributors.add_regex_route("/([^/]+)/(.+)", release);
+    thanks.add_regex_route("/([^/]+)/(.+)", release);
 
     info!(log, "Starting server, listening on http://{}", addr);
 
-    server.run(&addr, contributors);
+    server.run(&addr, thanks);
 }
 
 fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
@@ -67,7 +67,7 @@ fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
 
 
     data.insert("releases".to_string(),
-                Value::Array(contributors::releases::all()));
+                Value::Array(thanks::releases::all()));
 
     let template = build_template(&data, "templates/index.hbs");
 
@@ -89,7 +89,7 @@ fn about(_: Request) -> futures::Finished<Response, hyper::Error> {
 fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
     let mut data: BTreeMap = BTreeMap::new();
 
-    let scores = contributors::scores();
+    let scores = thanks::scores();
 
     data.insert("release".to_string(),
                 Value::String(String::from("all-time")));
@@ -114,7 +114,7 @@ fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Err
 
     data.insert("release".to_string(), Value::String(release_name.to_string()));
 
-    let names = contributors::releases::contributors(project, release_name);
+    let names = thanks::releases::thanks(project, release_name);
 
     match names {
         Some(names) => {

@@ -1,4 +1,4 @@
-extern crate contributors;
+extern crate thanks;
 
 extern crate diesel;
 
@@ -24,7 +24,7 @@ extern crate slog_term;
 
 use slog::DrainExt;
 
-use contributors::models::Project;
+use thanks::models::Project;
 
 #[derive(Debug,Deserialize)]
 struct GitHubResponse(Vec<Object>);
@@ -47,10 +47,10 @@ struct Author {
 }
 
 fn update_commit_db(log: &slog::Logger, project: &Project, connection: &PgConnection) {
-    use contributors::schema::releases::dsl::*;
-    use contributors::models::Release;
-    use contributors::schema::commits::dsl::*;
-    use contributors::models::Commit;
+    use thanks::schema::releases::dsl::*;
+    use thanks::models::Release;
+    use thanks::schema::commits::dsl::*;
+    use thanks::models::Commit;
     use diesel::expression::dsl::any;
 
     let api_link = Url::parse(format!("https://api.github.com/repos/{}/commits", project.github_name).as_str()).unwrap();
@@ -82,7 +82,7 @@ fn update_commit_db(log: &slog::Logger, project: &Project, connection: &PgConnec
             Err(_) => {
                 info!(log, "Creating commit {} for release {}", object.sha, master_release.version);
                 // this commit will be part of master
-                contributors::commits::create(connection, &object.sha, &object.commit.author.name, &object.commit.author.email, &master_release);
+                thanks::commits::create(connection, &object.sha, &object.commit.author.name, &object.commit.author.email, &master_release);
             },
         };
     }
@@ -91,9 +91,9 @@ fn update_commit_db(log: &slog::Logger, project: &Project, connection: &PgConnec
 fn main() {
     let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
 
-    use contributors::schema::projects::dsl::*;
+    use thanks::schema::projects::dsl::*;
 
-    let connection = contributors::establish_connection();
+    let connection = thanks::establish_connection();
     let projects_to_update: Vec<Project> = projects.load(&connection).expect("No projects found");
     for project in projects_to_update {
         info!(log, "Updating {}", project.name);

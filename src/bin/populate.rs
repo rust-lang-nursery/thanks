@@ -23,8 +23,7 @@ use diesel::prelude::*;
 use clap::{App, Arg};
 use slog::DrainExt;
 
-use std::io;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 fn main() {
     let matches = App::new("populate")
@@ -102,37 +101,48 @@ fn main() {
     let project = contributors::projects::create(&connection, project_name, url_path, github_name);
 
     // Create releases
-    // Infer them from git tags
-    let git_tags = Command::new("git")
-        .arg("-C")
-        .arg(path)
-        .arg("tag")
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed to run command");
-    let grep = Command::new("grep")
-        .arg("-P")
-        .arg("^\\d+.+|^v\\d+.+") // should this be configurable per project?
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed to run command");
-    let mut sort = Command::new("sort")
-        .arg("-V")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failer to run command");
-    io::copy(&mut git_tags.stdout.unwrap(), &mut grep.stdin.unwrap()).ok().expect("Cannot pipe");
-    io::copy(&mut grep.stdout.unwrap(), sort.stdin.as_mut().unwrap()).ok().expect("Cannot pipe");
-    let tags = sort.wait_with_output().unwrap().stdout;
-    let releases = String::from_utf8(tags).unwrap();
-    let releases = releases.lines();
+    let releases = [
+        // version, previous version
+        ("0.2", "0.1"),
+        ("0.3", "0.2"),
+        ("0.4", "0.3"),
+        ("0.5", "0.4"),
+        ("0.6", "0.5"),
+        ("0.7", "0.6"),
+        ("0.8", "0.7"),
+        ("0.9", "0.8"),
+        ("0.10", "0.9"),
+        ("0.11.0", "0.10"),
+        ("0.12.0", "0.11.0"),
+        ("1.0.0-alpha", "0.12.0"),
+        ("1.0.0-alpha.2", "1.0.0-alpha"),
+        ("1.0.0-beta", "1.0.0-alpha.2"),
+        ("1.0.0", "1.0.0-beta"),
+        ("1.1.0", "1.0.0"),
+        ("1.2.0", "1.1.0"),
+        ("1.3.0", "1.2.0"),
+        ("1.4.0", "1.3.0"),
+        ("1.5.0", "1.4.0"),
+        ("1.6.0", "1.5.0"),
+        ("1.7.0", "1.6.0"),
+        ("1.8.0", "1.7.0"),
+        ("1.9.0", "1.8.0"),
+        ("1.10.0", "1.9.0"),
+        ("1.11.0", "1.10.0"),
+        ("1.12.0", "1.11.0"),
+        ("1.12.1", "1.12.0"),
+        ("1.13.0", "1.12.0"),
+        ("1.14.0", "1.13.0"),
+    ];
 
-    let releases: Vec<&str> = releases.collect();
-    for release in releases.iter() {
+    // create 0.1, which isn't in the loop because it will have everything assigned
+    // to it by default
+    contributors::releases::create(&connection, "0.1", project.id);
+
+    for &(release, _) in releases.iter() {
         contributors::releases::create(&connection, release, project.id);
     }
+
     // And create the release for all commits that are not released yet
     contributors::releases::create(&connection, "master", project.id);
 
@@ -156,6 +166,8 @@ fn main() {
     {
         use contributors::schema::releases::dsl::*;
         use contributors::models::Release;
+
+        // does this need an explicit order clause?
         let first_release = releases.
             filter(project_id.eq(project.id)).
             first::<Release>(&connection).
@@ -182,13 +194,13 @@ fn main() {
     }
 
     // assign commits to their release
-    let master = "master";
-    for (i, v1) in releases.iter().enumerate() {
-        let v2 = releases.get(i+1).unwrap_or(&master);
-        println!("({}, {})", v1, v2);
-        contributors::releases::assign_commits(&log, v2, v1, project.id, &path);
+    for &(release, previous) in releases.iter() {
+        contributors::releases::assign_commits(&log, release, previous, project.id, &path);
     }
 
+    // assign master
+    let last = releases.last().unwrap().0;
+    contributors::releases::assign_commits(&log, "master", last, project.id, &path);
 
     info!(log, "Done!");
 }

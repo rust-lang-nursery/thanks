@@ -43,6 +43,7 @@ pub struct NewProject<'a> {
     pub url_path: &'a str,
     pub github_name: &'a str,
 }
+
 use super::schema::commits;
 
 #[derive(Insertable)]

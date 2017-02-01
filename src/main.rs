@@ -54,7 +54,7 @@ fn main() {
     thanks.add_route("/about", about);
 
     thanks.add_route("/rust/all-time", all_time);
-    
+
     thanks.add_regex_route("/([^/]+)/(.+)", release);
 
     info!(log, "Starting server, listening on http://{}", addr);
@@ -114,7 +114,7 @@ fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Err
 
     data.insert("release".to_string(), Value::String(release_name.to_string()));
 
-    let names = thanks::releases::thanks(project, release_name);
+    let names = thanks::releases::contributors(project, release_name);
 
     match names {
         Some(names) => {

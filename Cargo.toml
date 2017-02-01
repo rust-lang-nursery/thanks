@@ -1,12 +1,12 @@
 [package]
 authors = ["Steve Klabnik <steve@steveklabnik.com>"]
-name = "contributors"
+name = "thanks"
 version = "0.1.0"
 
 [workspace]
 
 [[bin]]
-name = "contributors"
+name = "thanks"
 doc = false
 [[bin]]
 name = "populate"

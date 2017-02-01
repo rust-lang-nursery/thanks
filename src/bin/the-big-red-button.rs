@@ -1,4 +1,4 @@
-extern crate contributors;
+extern crate thanks;
 
 extern crate clap;
 
@@ -34,7 +34,7 @@ fn main() {
 
     let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
 
-    let connection = contributors::establish_connection();
+    let connection = thanks::establish_connection();
 
     match matches.is_present("all") {
         true => delete_whole_db(&log, &connection),
@@ -48,11 +48,11 @@ fn main() {
 }
 
 fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_name: &str) {
-    use contributors::schema::releases::dsl::*;
-    use contributors::models::Release;
-    use contributors::schema::projects::dsl::{projects, name};
-    use contributors::models::Project;
-    use contributors::schema::commits::dsl::{commits, release_id};
+    use thanks::schema::releases::dsl::*;
+    use thanks::models::Release;
+    use thanks::schema::projects::dsl::{projects, name};
+    use thanks::models::Project;
+    use thanks::schema::commits::dsl::{commits, release_id};
     use diesel::expression::dsl::any;
 
     let project = projects.filter(name.eq(project_name)).first::<Project>(connection).expect("Unknown project!");
@@ -80,9 +80,9 @@ fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_nam
 }
 
 fn delete_whole_db(log: &slog::Logger, connection: &PgConnection) {
-    use contributors::schema::releases::dsl::*;
-    use contributors::schema::commits::dsl::*;
-    use contributors::schema::projects::dsl::*;
+    use thanks::schema::releases::dsl::*;
+    use thanks::schema::commits::dsl::*;
+    use thanks::schema::projects::dsl::*;
 
     info!(log, "Deleting commits");
     diesel::delete(commits)

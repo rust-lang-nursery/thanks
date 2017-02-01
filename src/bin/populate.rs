@@ -1,4 +1,4 @@
-extern crate contributors;
+extern crate thanks;
 
 extern crate diesel;
 
@@ -56,7 +56,7 @@ fn main() {
 
     let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
 
-    let connection = contributors::establish_connection();
+    let connection = thanks::establish_connection();
 
     // get name
     let project_name = matches.value_of("name").unwrap();
@@ -64,9 +64,9 @@ fn main() {
 
     // check that we have no releases for given project
     {
-        use contributors::models::Release;
-        use contributors::schema::projects::dsl::*;
-        use contributors::models::Project;
+        use thanks::models::Release;
+        use thanks::schema::projects::dsl::*;
+        use thanks::models::Project;
 
         if let Ok(project) = projects.filter(name.eq(project_name)).load::<Project>(&connection) {
             if let Ok(count) = Release::belonging_to(&project).count().first::<i64>(&connection) {
@@ -98,7 +98,7 @@ fn main() {
     info!(log, "GitHub name: {}", github_name);
 
     // create project
-    let project = contributors::projects::create(&connection, project_name, url_path, github_name);
+    let project = thanks::projects::create(&connection, project_name, url_path, github_name);
 
     // Create releases
     let releases = [
@@ -137,14 +137,14 @@ fn main() {
 
     // create 0.1, which isn't in the loop because it will have everything assigned
     // to it by default
-    contributors::releases::create(&connection, "0.1", project.id);
+    thanks::releases::create(&connection, "0.1", project.id);
 
     for &(release, _) in releases.iter() {
-        contributors::releases::create(&connection, release, project.id);
+        thanks::releases::create(&connection, release, project.id);
     }
 
     // And create the release for all commits that are not released yet
-    contributors::releases::create(&connection, "master", project.id);
+    thanks::releases::create(&connection, "master", project.id);
 
     // create most commits
     //
@@ -164,8 +164,8 @@ fn main() {
     let git_log = git_log.stdout;
     let git_log = String::from_utf8(git_log).unwrap();
     {
-        use contributors::schema::releases::dsl::*;
-        use contributors::models::Release;
+        use thanks::schema::releases::dsl::*;
+        use thanks::models::Release;
 
         // does this need an explicit order clause?
         let first_release = releases.
@@ -189,18 +189,18 @@ fn main() {
 
             // We tag all commits initially to the first release. Each release will
             // set this properly below.
-            contributors::commits::create(&connection, &sha, &author_name, &author_email, &first_release);
+            thanks::commits::create(&connection, &sha, &author_name, &author_email, &first_release);
         }
     }
 
     // assign commits to their release
     for &(release, previous) in releases.iter() {
-        contributors::releases::assign_commits(&log, release, previous, project.id, &path);
+        thanks::releases::assign_commits(&log, release, previous, project.id, &path);
     }
 
     // assign master
     let last = releases.last().unwrap().0;
-    contributors::releases::assign_commits(&log, "master", last, project.id, &path);
+    thanks::releases::assign_commits(&log, "master", last, project.id, &path);
 
     info!(log, "Done!");
 }

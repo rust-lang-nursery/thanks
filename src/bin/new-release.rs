@@ -1,4 +1,4 @@
-extern crate contributors;
+extern crate thanks;
 
 extern crate diesel;
 extern crate clap;
@@ -46,12 +46,12 @@ fn main() {
     let path = matches.value_of("filepath").unwrap();
     info!(&log, "Path to {} repo: {}", project_name, path);
 
-    use contributors::schema::releases::dsl::*;
-    use contributors::models::Release;
-    use contributors::schema::projects::dsl::{projects, name};
-    use contributors::models::Project;
+    use thanks::schema::releases::dsl::*;
+    use thanks::models::Release;
+    use thanks::schema::projects::dsl::{projects, name};
+    use thanks::models::Project;
 
-    let connection = contributors::establish_connection();
+    let connection = thanks::establish_connection();
 
     let project = projects.filter(name.eq(project_name)).first::<Project>(&connection).expect("Unknown project!");
     let release = Release::belonging_to(&project).order(id.desc()).first::<Release>(&connection).unwrap();
@@ -63,9 +63,9 @@ fn main() {
        panic!("Release {} already exists! Something must be wrong.", new_release_name);
     }
 
-    let new_release = contributors::releases::create(&connection, &new_release_name, project.id);
+    let new_release = thanks::releases::create(&connection, &new_release_name, project.id);
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);
-    contributors::releases::assign_commits(&log, &new_release.version, &release.version, project.id, &path);
+    thanks::releases::assign_commits(&log, &new_release.version, &release.version, project.id, &path);
 }

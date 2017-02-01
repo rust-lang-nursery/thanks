@@ -9,12 +9,12 @@ pub struct Project {
 
 #[derive(Debug,Identifiable,Queryable,Associations)]
 #[belongs_to(Release)]
+#[belongs_to(Author)]
 pub struct Commit {
     pub id: i32,
     pub sha: String,
-    pub author_name: String,
-    pub author_email: String,
     pub release_id: i32,
+    pub author_id: i32,
 }
 
 #[derive(Debug,Identifiable,Queryable,Associations)]
@@ -24,6 +24,14 @@ pub struct Release {
     pub id: i32,
     pub version: String,
     pub project_id: i32,
+}
+
+#[derive(Debug,Identifiable,Queryable,Associations)]
+#[has_many(commits)]
+pub struct Author {
+    pub id: i32,
+    pub name: String,
+    pub email: String,
 }
 
 use super::schema::projects;
@@ -42,8 +50,7 @@ use super::schema::commits;
 pub struct NewCommit<'a> {
     pub sha: &'a str,
     pub release_id: i32,
-    pub author_name: &'a str,
-    pub author_email: &'a str,
+    pub author_id: i32,
 }
 
 use super::schema::releases;
@@ -53,4 +60,13 @@ use super::schema::releases;
 pub struct NewRelease<'a> {
     pub version: &'a str,
     pub project_id: i32,
+}
+
+use super::schema::authors;
+
+#[derive(Insertable)]
+#[table_name="authors"]
+pub struct NewAuthor<'a> {
+    pub name: &'a str,
+    pub email: &'a str,
 }

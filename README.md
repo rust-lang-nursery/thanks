@@ -9,8 +9,7 @@ This web application shows people who have contributed to Rust.
 
 ## Setup
 
-You'll need nightly Rust for now. This will change with Rust 1.15, when
-this will run on stable.
+You need stable Rust to run Thanks.
 
 Get the app set up. You'll need [postgres](diesel_setup.md) installed. And
 [sqlite3 headers](diesel_setup.md) I think.

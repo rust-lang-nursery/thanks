@@ -27,12 +27,12 @@ doc = false
 
 [dependencies]
 futures = "0.1.7"
-reqwest = "0.2.0"
-serde = "0.8.22"
-serde_derive = "0.8.22"
-serde_json = "0.8.4"
-diesel = "0.9.0"
-diesel_codegen = { version = "0.9.0", features = ["postgres"] }
+reqwest = "0.4.0"
+serde = "0.9.0"
+serde_derive = "0.9.0"
+serde_json = "0.9.0"
+diesel = "0.10.0"
+diesel_codegen = { version = "0.10.0", features = ["postgres"] }
 dotenv = "0.8.0"
 caseless = "0.1.2"
 unicode-normalization = "0.1.0"
@@ -45,7 +45,7 @@ regex = "0.2.1"
 path = "./http"
 
 [dependencies.handlebars]
-version = "0.24.1"
+version = "0.25.0"
 features = ["serde_type"]
 
 [dependencies.hyper]

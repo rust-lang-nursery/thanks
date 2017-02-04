@@ -48,12 +48,14 @@ fn main() {
 }
 
 fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_name: &str) {
-    use thanks::schema::releases::dsl::*;
+    use thanks::schema::releases::dsl::{releases, id as _release_id};
     use thanks::models::Release;
     use thanks::schema::projects::dsl::{projects, name};
     use thanks::models::Project;
-    use thanks::schema::commits::dsl::{commits, release_id};
+    use thanks::schema::commits::dsl::{commits, release_id, id as _commit_id};
+    use thanks::schema::authors::dsl::{authors, id as _author_id};
     use diesel::expression::dsl::any;
+    use diesel::associations::HasTable;
 
     let project = projects.filter(name.eq(project_name)).first::<Project>(connection).expect("Unknown project!");
     let releases_to_delete = Release::belonging_to(&project).load::<Release>(connection).unwrap();
@@ -66,8 +68,16 @@ fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_nam
         .execute(connection)
         .expect("Error deleting releases");
 
+    info!(log, "Deleting authors");
+    let author_ids_to_delete = authors.left_outer_join(commits)
+        .filter(_commit_id.is_null()).select(_author_id);
+
+    diesel::delete(authors.filter(_author_id.eq(any(author_ids_to_delete))))
+        .execute(connection)
+        .expect("Error deleting releases");
+
     info!(log, "Deleting releases");
-    diesel::delete(releases.filter(id.eq(any(&release_ids))))
+    diesel::delete(releases.filter(_release_id.eq(any(&release_ids))))
         .execute(connection)
         .expect("Error deleting releases");
 
@@ -83,11 +93,17 @@ fn delete_whole_db(log: &slog::Logger, connection: &PgConnection) {
     use thanks::schema::releases::dsl::*;
     use thanks::schema::commits::dsl::*;
     use thanks::schema::projects::dsl::*;
+    use thanks::schema::authors::dsl::*;
 
     info!(log, "Deleting commits");
     diesel::delete(commits)
         .execute(connection)
-        .expect("Error deleting releases");
+        .expect("Error deleting commits");
+
+    info!(log, "Deleting authors");
+    diesel::delete(authors)
+        .execute(connection)
+        .expect("Error deleting authors");
 
     info!(log, "Deleting releases");
     diesel::delete(releases)

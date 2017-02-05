@@ -52,10 +52,11 @@ fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_nam
     use thanks::models::Release;
     use thanks::schema::projects::dsl::{projects, name};
     use thanks::models::Project;
-    use thanks::schema::commits::dsl::{commits, release_id, id as _commit_id};
+    use thanks::schema::commits::dsl::{commits, release_id};
     use thanks::schema::authors::dsl::{authors, id as _author_id};
     use diesel::expression::dsl::any;
-    use diesel::associations::HasTable;
+    use diesel::expression::dsl::sql;
+    use diesel::types::Bool;
 
     let project = projects.filter(name.eq(project_name)).first::<Project>(connection).expect("Unknown project!");
     let releases_to_delete = Release::belonging_to(&project).load::<Release>(connection).unwrap();
@@ -66,15 +67,16 @@ fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_nam
     info!(log, "Deleting commits");
     diesel::delete(commits.filter(release_id.eq(any(&release_ids))))
         .execute(connection)
-        .expect("Error deleting releases");
+        .expect("Error deleting commits");
 
     info!(log, "Deleting authors");
+    // we can rewrite the raw sql to a query builder
+    // when diesel fixes this https://github.com/diesel-rs/diesel/issues/621
     let author_ids_to_delete = authors.left_outer_join(commits)
-        .filter(_commit_id.is_null()).select(_author_id);
-
+        .filter(sql::<Bool>("commits.id IS NULL")).select(_author_id);
     diesel::delete(authors.filter(_author_id.eq(any(author_ids_to_delete))))
         .execute(connection)
-        .expect("Error deleting releases");
+        .expect("Error deleting authorsreleases");
 
     info!(log, "Deleting releases");
     diesel::delete(releases.filter(_release_id.eq(any(&release_ids))))

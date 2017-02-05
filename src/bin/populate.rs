@@ -133,6 +133,7 @@ fn main() {
         ("1.12.1", "1.12.0"),
         ("1.13.0", "1.12.0"),
         ("1.14.0", "1.13.0"),
+        ("1.15.0", "1.14.0"),
     ];
 
     // create 0.1, which isn't in the loop because it will have everything assigned

@@ -13,10 +13,11 @@ use dotenv::dotenv;
 extern crate caseless;
 extern crate unicode_normalization;
 
-use std::collections::BTreeMap;
 use std::env;
 
 extern crate serde_json;
+
+use serde_json::Map;
 
 #[macro_use]
 extern crate slog;
@@ -77,14 +78,14 @@ pub fn scores() -> Vec<Value> {
             last_score = score;
         }
 
-        let mut json_score: BTreeMap<String, Value> = BTreeMap::new();
+        let mut json_score: Map<String, Value> = Map::new();
 
         // we use last_rank here so that we get duplicate ranks for people
         // with the same number of commits
-        json_score.insert("rank".to_string(), Value::I64(last_rank));
+        json_score.insert("rank".to_string(), Value::Number(last_rank.into()));
 
         json_score.insert("author".to_string(), Value::String(author));
-        json_score.insert("commits".to_string(), Value::I64(score));
+        json_score.insert("commits".to_string(), Value::Number(score.into()));
 
         Value::Object(json_score)
     }).collect()

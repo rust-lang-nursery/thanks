@@ -93,7 +93,7 @@ fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
 
     data.insert("release".to_string(),
                 Value::String(String::from("all-time")));
-    data.insert("count".to_string(), Value::U64(scores.len() as u64));
+    data.insert("count".to_string(), Value::Number((scores.len() as u64).into()));
     data.insert("scores".to_string(), Value::Array(scores));
 
     let template = build_template(&data, "templates/all-time.hbs");
@@ -118,7 +118,7 @@ fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Err
 
     match names {
         Some(names) => {
-            data.insert("count".to_string(), Value::U64(names.len() as u64));
+            data.insert("count".to_string(), Value::Number((names.len() as u64).into()));
             data.insert("names".to_string(), Value::Array(names));
         }
         None => {

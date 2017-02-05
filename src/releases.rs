@@ -63,6 +63,7 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
         // did we make this commit earlier? If so, update it. If not, create it
         match commits.filter(sha.eq(&sha_name)).first::<Commit>(&connection) {
             Ok(the_commit) => {
+                info!(log, "Commit {} already exists in the database, just assigning it to release {}", sha_name, the_release.version);
                 diesel::update(commits.find(the_commit.id))
                     .set(release_id.eq(the_release.id))
                     .get_result::<Commit>(&connection)

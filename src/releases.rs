@@ -148,7 +148,7 @@ pub fn contributors(project: &str, release_name: &str) -> Option<Vec<Value>> {
     // but Postgres doesn't do Unicode collation correctly on OSX
     // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
     let mut names: Vec<String> = authors::table().inner_join(commits::table()).filter(release_id.eq(release.id))
-        .select(name).distinct().load(&connection).unwrap();
+        .filter(visible.eq(true)).select(name).distinct().load(&connection).unwrap();
 
     inaccurate_sort(&mut names);
 

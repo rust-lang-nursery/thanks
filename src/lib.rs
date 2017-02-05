@@ -53,6 +53,7 @@ pub fn scores() -> Vec<Value> {
     let scores: Vec<_> =
         commits::table()
         .inner_join(authors::table())
+        .filter(visible.eq(true))
         .select((name, sql::<BigInt>("COUNT(author_id) AS author_count")))
         .group_by((author_id, name))
         .order(sql::<BigInt>("author_count").desc())

@@ -106,18 +106,18 @@ impl Service for Contributors {
         }
 
         // first, we serve static files
-        let path = req.path().to_string();
+        let fs_path = format!("public{}", req.path());
 
         // ... you trying to do something bad?
-        if path.contains("./") || path.contains("../") {
+        if fs_path.contains("./") || fs_path.contains("../") {
             // GET OUT
             return ::futures::finished(Response::new()
                 .with_header(ContentType::html())
                 .with_status(StatusCode::NotFound));
         }
 
-        if path.starts_with("/public") && Path::new(&path[1..]).is_file() {
-            let mut f = File::open(&path[1..]).unwrap();
+        if Path::new(&fs_path).is_file() {
+            let mut f = File::open(&fs_path).unwrap();
             let mut source = Vec::new();
             f.read_to_end(&mut source).unwrap();
 

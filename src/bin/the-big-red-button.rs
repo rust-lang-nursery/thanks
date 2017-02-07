@@ -57,7 +57,7 @@ fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_nam
 
     let project = projects.filter(name.eq(project_name)).first::<Project>(connection).expect("Unknown project!");
     let releases_to_delete = Release::belonging_to(&project).load::<Release>(connection).unwrap();
-    let release_names: Vec<i32> = releases_to_delete.iter().map(|ref release| release.id).collect();
+    let release_names: Vec<&str> = releases_to_delete.iter().map(|ref release| release.version.as_str()).collect();
     let release_ids: Vec<i32> = releases_to_delete.iter().map(|ref release| release.id).collect();
     info!(log, "Deleting project {} with release names: {:?}", project_name, release_names);
 
@@ -71,10 +71,10 @@ fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_nam
         .execute(connection)
         .expect("Error deleting releases");
 
-    info!(log, "Deleting projects");
+    info!(log, "Deleting project");
     diesel::delete(projects.filter(name.eq(project_name)))
         .execute(connection)
-        .expect("Error deleting projects");
+        .expect("Error deleting project");
 
     info!(log, "Done.");
 }

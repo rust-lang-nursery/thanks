@@ -116,7 +116,7 @@ impl Service for Contributors {
                 .with_status(StatusCode::NotFound));
         }
 
-        if path.starts_with("/public") && Path::new(&path[1..]).exists() {
+        if path.starts_with("/public") && Path::new(&path[1..]).is_file() {
             let mut f = File::open(&path[1..]).unwrap();
             let mut source = Vec::new();
             f.read_to_end(&mut source).unwrap();

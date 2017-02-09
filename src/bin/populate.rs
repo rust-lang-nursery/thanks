@@ -157,7 +157,7 @@ fn main() {
         .arg("--no-pager")
         .arg("log")
         .arg("--use-mailmap")
-        .arg(r#"--format=%H %ae %an"#)
+        .arg(r#"--format=%H %aE %aN"#)
         .arg("master")
         .output()
         .expect("failed to execute process");

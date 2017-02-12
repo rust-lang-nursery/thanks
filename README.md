@@ -86,7 +86,7 @@ If you're working on the `populate` binary, it's useful to be able to quickly
 drop your local database:
 
 ```bash
-$ cargo run --bin the-big-red-button --all
+$ cargo run --bin the-big-red-button -- --all
 ```
 
 You can also delete only one project by passing `--name NAME` option.

@@ -217,6 +217,7 @@ pub fn all() -> Vec<Value> {
     };
 
     let results = releases.filter(project_id.eq(project.id))
+        .filter(visible.eq(true))
         .load::<Release>(&connection)
         .expect("Error loading releases");
 

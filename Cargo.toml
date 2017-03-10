@@ -26,6 +26,10 @@ doc = false
 name = "the-big-red-button"
 path = "src/bin/the-big-red-button.rs"
 doc = false
+[[bin]]
+name = "opt-out"
+path = "src/bin/opt-out.rs"
+doc = false
 
 [dependencies]
 futures = "0.1.7"

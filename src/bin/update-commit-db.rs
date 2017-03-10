@@ -81,8 +81,9 @@ fn update_commit_db(log: &slog::Logger, project: &Project, connection: &PgConnec
             },
             Err(_) => {
                 info!(log, "Creating commit {} for release {}", object.sha, master_release.version);
+                let author = thanks::authors::load_or_create(&connection, &object.commit.author.name, &object.commit.author.email);
                 // this commit will be part of master
-                thanks::commits::create(connection, &object.sha, &object.commit.author.name, &object.commit.author.email, &master_release);
+                thanks::commits::create(connection, &object.sha, &author, &master_release);
             },
         };
     }

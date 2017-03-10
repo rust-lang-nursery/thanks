@@ -29,6 +29,7 @@ pub mod models;
 pub mod projects;
 pub mod releases;
 pub mod commits;
+pub mod authors;
 
 use serde_json::value::Value;
 
@@ -43,15 +44,19 @@ pub fn establish_connection() -> PgConnection {
 
 pub fn scores() -> Vec<Value> {
     use schema::commits::dsl::*;
+    use schema::authors::dsl::*;
     use diesel::expression::dsl::sql;
     use diesel::types::BigInt;
+    use diesel::associations::HasTable;
 
     let connection = establish_connection();
 
     let scores: Vec<_> =
-        commits
-        .select((author_name, sql::<BigInt>("COUNT(author_name) AS author_count")))
-        .group_by(author_name)
+        commits::table()
+        .inner_join(authors::table())
+        .filter(visible.eq(true))
+        .select((name, sql::<BigInt>("COUNT(author_id) AS author_count")))
+        .group_by((author_id, name))
         .order(sql::<BigInt>("author_count").desc())
         .load(&connection)
         .unwrap();

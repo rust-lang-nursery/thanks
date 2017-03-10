@@ -190,7 +190,8 @@ fn main() {
 
             // We tag all commits initially to the first release. Each release will
             // set this properly below.
-            thanks::commits::create(&connection, &sha, &author_name, &author_email, &first_release);
+            let author = thanks::authors::load_or_create(&connection, &author_name, &author_email);
+            thanks::commits::create(&connection, &sha, &author, &first_release);
         }
     }
 

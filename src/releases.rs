@@ -63,6 +63,7 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
         // did we make this commit earlier? If so, update it. If not, create it
         match commits.filter(sha.eq(&sha_name)).first::<Commit>(&connection) {
             Ok(the_commit) => {
+                info!(log, "Commit {} already exists in the database, just assigning it to release {}", sha_name, the_release.version);
                 diesel::update(commits.find(the_commit.id))
                     .set(release_id.eq(the_release.id))
                     .get_result::<Commit>(&connection)
@@ -92,7 +93,8 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
 
                 info!(log, "Creating commit {} for release {}", the_sha, the_release.version);
 
-                ::commits::create(&connection, &the_sha, &the_author_name, &the_author_email, &the_release);
+                let author = ::authors::load_or_create(&connection, &the_author_name, &the_author_email);
+                ::commits::create(&connection, &the_sha, &author, &the_release);
             },
         };
     }
@@ -114,8 +116,9 @@ pub fn create(conn: &PgConnection, version: &str, project_id: i32) -> Release {
 pub fn contributors(project: &str, release_name: &str) -> Option<Vec<Value>> {
     use schema::releases::dsl::*;
     use schema::commits::dsl::*;
+    use schema::authors::dsl::*;
     use models::Release;
-    use models::Commit;
+    use diesel::associations::HasTable;
 
     let connection = ::establish_connection();
 
@@ -144,8 +147,8 @@ pub fn contributors(project: &str, release_name: &str) -> Option<Vec<Value>> {
     // it'd be better to do this in the db
     // but Postgres doesn't do Unicode collation correctly on OSX
     // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
-    let mut names: Vec<String> = Commit::belonging_to(&release)
-        .select(author_name).distinct().load(&connection).unwrap();
+    let mut names: Vec<String> = authors::table().inner_join(commits::table()).filter(release_id.eq(release.id))
+        .filter(visible.eq(true)).select(name).distinct().load(&connection).unwrap();
 
     inaccurate_sort(&mut names);
 

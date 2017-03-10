@@ -104,5 +104,12 @@ $ cargo run --bin update-commit-db
 ```
 
 This will hit GitHub's API instead of using a local checkout of Rust, as it is
-assumed that this will run on the server, and we don't want to do a full git
-checkout there.
+assumed that this will run on the server, and we don't want to do a full
+git checkout there.
+
+To hide someone from the page, you can run `opt-out` binary (append an
+extra `--opt-in` option to that if you want to revert the change)):
+
+```bash
+cargo run --bin opt-out -- --email example@example.com
+```

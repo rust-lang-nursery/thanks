@@ -24,6 +24,7 @@ pub struct Release {
     pub id: i32,
     pub version: String,
     pub project_id: i32,
+    pub visible: bool,
 }
 
 #[derive(Debug,Identifiable,Queryable,Associations)]

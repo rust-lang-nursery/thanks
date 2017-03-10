@@ -116,7 +116,6 @@ pub fn create(conn: &PgConnection, version: &str, project_id: i32) -> Release {
 pub fn contributors(project: &str, release_name: &str) -> Option<Vec<Value>> {
     use schema::releases::dsl::*;
     use schema::commits::dsl::*;
-    use schema::authors::dsl::*;
     use models::Release;
     use diesel::associations::HasTable;
 
@@ -147,8 +146,9 @@ pub fn contributors(project: &str, release_name: &str) -> Option<Vec<Value>> {
     // it'd be better to do this in the db
     // but Postgres doesn't do Unicode collation correctly on OSX
     // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
-    let mut names: Vec<String> = authors::table().inner_join(commits::table()).filter(release_id.eq(release.id))
-        .filter(visible.eq(true)).select(name).distinct().load(&connection).unwrap();
+    use schema::authors;
+    let mut names: Vec<String> = authors::table.inner_join(commits::table()).filter(release_id.eq(release.id))
+        .filter(authors::visible.eq(true)).select(authors::name).distinct().load(&connection).unwrap();
 
     inaccurate_sort(&mut names);
 

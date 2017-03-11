@@ -47,13 +47,10 @@ pub fn scores() -> Vec<Value> {
     use schema::authors::dsl::*;
     use diesel::expression::dsl::sql;
     use diesel::types::BigInt;
-    use diesel::associations::HasTable;
 
     let connection = establish_connection();
 
-    let scores: Vec<_> =
-        commits::table()
-        .inner_join(authors::table())
+    let scores: Vec<_> = commits.inner_join(authors)
         .filter(visible.eq(true))
         .select((name, sql::<BigInt>("COUNT(author_id) AS author_count")))
         .group_by((author_id, name))

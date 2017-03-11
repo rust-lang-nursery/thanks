@@ -1,5 +1,5 @@
-use models::{Release, NewRelease};
-use models::Project;
+use models::*;
+use schema::*;
 
 use caseless;
 
@@ -11,6 +11,7 @@ use serde_json::value::Value;
 
 use std::cmp::Ordering;
 use std::process::Command;
+use std::str;
 
 use slog::Logger;
 
@@ -33,70 +34,46 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
         .arg("--no-pager")
         .arg("log")
         .arg("--use-mailmap")
-        .arg(r#"--format=%H"#)
+        .arg(r#"--format=%H %ae %an"#)
         .arg(&format!("{}...{}", previous_release, release_name))
         .output()
         .expect("failed to execute process");
 
-    let git_log = git_log.stdout;
-    let git_log = String::from_utf8(git_log).unwrap();
+    let the_release = releases::table
+        .filter(releases::version.eq(&release_name))
+        .filter(releases::project_id.eq(release_project_id))
+        .first::<Release>(&connection)
+        .expect("could not find release");
 
-    for sha_name in git_log.split('\n') {
-        // there is a last, blank line
-        if sha_name == "" {
-            continue;
-        }
+    let commits = str::from_utf8(&git_log.stdout).unwrap()
+        .trim()
+        .split('\n')
+        .map(|line| {
+            let mut parts = line.split(' ');
+            let sha_name = parts.next().unwrap();
+            let author_email = parts.next().unwrap();
+            let author_name = parts.next().unwrap();
+            (sha_name, author_email, author_name)
+        });
 
-        info!(log, "Assigning commit {} to release {}", sha_name, release_name);
-
-        use schema::releases::dsl::*;
-        use models::Release;
+    for (the_sha, author_email, author_name) in commits {
         use schema::commits::dsl::*;
-        use models::Commit;
 
-        let the_release = releases
-            .filter(version.eq(&release_name))
-            .filter(project_id.eq(release_project_id))
-            .first::<Release>(&connection)
-            .expect("could not find release");
+        info!(log, "Assigning commit {} to release {}", the_sha, release_name);
 
-        // did we make this commit earlier? If so, update it. If not, create it
-        match commits.filter(sha.eq(&sha_name)).first::<Commit>(&connection) {
-            Ok(the_commit) => {
-                info!(log, "Commit {} already exists in the database, just assigning it to release {}", sha_name, the_release.version);
-                diesel::update(commits.find(the_commit.id))
-                    .set(release_id.eq(the_release.id))
-                    .get_result::<Commit>(&connection)
-                    .expect(&format!("Unable to update commit {}", the_commit.id));
-            },
-            Err(_) => {
-                let git_log = Command::new("git")
-                    .arg("-C")
-                    .arg(&path)
-                    .arg("--no-pager")
-                    .arg("show")
-                    .arg(r#"--format=%H %ae %an"#)
-                    .arg(&sha_name)
-                    .output()
-                    .expect("failed to execute process");
+        let updated_count = diesel::update(commits.filter(sha.eq(&the_sha)))
+            .set(release_id.eq(the_release.id))
+            .execute(&connection)
+            .expect("Unable to update commit");
 
-                let git_log = git_log.stdout;
-                let git_log = String::from_utf8(git_log).unwrap();
+        if updated_count < 1 {
+            info!(log, "Creating commit {} for release {}", the_sha, the_release.version);
 
-                let log_line = git_log.split('\n').nth(0).unwrap();
-
-                let mut split = log_line.splitn(3, ' ');
-
-                let the_sha = split.next().unwrap();
-                let the_author_email = split.next().unwrap();
-                let the_author_name = split.next().unwrap();
-
-                info!(log, "Creating commit {} for release {}", the_sha, the_release.version);
-
-                let author = ::authors::load_or_create(&connection, &the_author_name, &the_author_email);
-                ::commits::create(&connection, &the_sha, &author, &the_release);
-            },
-        };
+            let author = ::authors::load_or_create(&connection, &author_name, &author_email);
+            ::commits::create(&connection, &the_sha, &author, &the_release);
+        } else {
+            info!(log, "Commit {} already exists in the database, just assigning it to release {}", the_sha, the_release.version);
+        }
     }
 }
 

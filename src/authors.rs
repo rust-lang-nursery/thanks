@@ -13,6 +13,26 @@ pub fn load_or_create(conn: &PgConnection, author_name: &str, author_email: &str
         .expect("Could not find or create author")
 }
 
+pub fn find_or_create_all(conn: &PgConnection, new_authors: Vec<NewAuthor>)
+    -> QueryResult<Vec<Author>>
+{
+    use schema::authors::dsl::*;
+    use diesel::expression::dsl::any;
+    use diesel::pg::upsert::*;
+
+    let (names, emails): (Vec<_>, Vec<_>) = new_authors.iter()
+        .map(|author| (author.name, author.email))
+        .unzip();
+
+    insert(&new_authors.on_conflict_do_nothing())
+        .into(authors)
+        .execute(conn)?;
+
+    authors.filter(name.eq(any(names)))
+        .filter(email.eq(any(emails)))
+        .load(conn)
+}
+
 fn find_or_create(conn: &PgConnection, new_author: NewAuthor) -> QueryResult<Author> {
     use schema::authors::dsl::*;
     use diesel::pg::upsert::*;

@@ -3,13 +3,14 @@ use schema::*;
 
 use caseless;
 
-use diesel;
+use diesel::*;
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
 
 use serde_json::value::Value;
 
 use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::error::Error;
 use std::process::Command;
 use std::str;
 
@@ -22,6 +23,9 @@ use diesel::types::VarChar;
 sql_function!(lower, lower_t, (x: VarChar) -> VarChar);
 
 pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, release_project_id: i32, path: &str) {
+    use diesel::expression::dsl::any;
+    use diesel::pg::upsert::*;
+
     // Could take the connection as a parameter, as problably
     // it's already established somewhere...
     let connection = ::establish_connection();
@@ -54,27 +58,63 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
             let author_email = parts.next().unwrap();
             let author_name = parts.next().unwrap();
             (sha_name, author_email, author_name)
-        });
+        })
+        .collect();
 
-    for (the_sha, author_email, author_name) in commits {
-        use schema::commits::dsl::*;
+    connection.transaction::<_, Box<Error>, _>(|| {
+        let (shas, commits): (Vec<_>, Vec<_>) =
+            authors_by_sha(&connection, commits)?
+                .into_iter()
+                .map(|(sha, author_id)| {
+                    (sha, NewCommit {
+                        sha: sha,
+                        release_id: the_release.id,
+                        author_id: author_id,
+                    })
+                })
+                .unzip();
 
-        info!(log, "Assigning commit {} to release {}", the_sha, release_name);
+        // Set the release id of any commits that already existed
+        // FIXME: In Diesel 0.12 collapse this with the next line to use
+        // .on_conflict(sha, do_update().set(commits::release_id.eq(the_release.id)))
+        let updated = update(commits::table.filter(commits::sha.eq(any(shas))))
+            .set(commits::release_id.eq(the_release.id))
+            .execute(&connection)?;
 
-        let updated_count = diesel::update(commits.filter(sha.eq(&the_sha)))
-            .set(release_id.eq(the_release.id))
-            .execute(&connection)
-            .expect("Unable to update commit");
+        let inserted = insert(&commits.on_conflict_do_nothing())
+            .into(commits::table)
+            .execute(&connection)?;
 
-        if updated_count < 1 {
-            info!(log, "Creating commit {} for release {}", the_sha, the_release.version);
-
-            let author = ::authors::load_or_create(&connection, &author_name, &author_email);
-            ::commits::create(&connection, &the_sha, &author, &the_release);
+        let total = updated + inserted;
+        if total == commits.len() {
+            Ok(())
         } else {
-            info!(log, "Commit {} already exists in the database, just assigning it to release {}", the_sha, the_release.version);
+            Err(format!("Expected to create or update {} commits, \
+                         but only {} were", commits.len(), total).into())
         }
-    }
+    }).expect("Error saving commits and authors");
+}
+
+type Sha<'a> = &'a str;
+type Email<'a> = &'a str;
+type Name<'a> = &'a str;
+type AuthorId = i32;
+
+/// Finds or creates all authors from a git log, and returns the given shas
+/// zipped with the id of the author in the database.
+fn authors_by_sha<'a>(conn: &PgConnection, git_log: Vec<(Sha<'a>, Email, Name)>)
+    -> QueryResult<Vec<(Sha<'a>, AuthorId)>>
+{
+    let new_authors = git_log.iter().map(|&(_, email, name)| {
+        NewAuthor { email: email, name: name }
+    }).collect();
+    let author_ids = ::authors::find_or_create_all(conn, new_authors)?
+        .into_iter()
+        .map(|author| ((author.email, author.name), author.id))
+        .collect::<HashMap<_, _>>();
+    Ok(git_log.into_iter()
+        .map(|(sha, email, name)| (sha, author_ids[&(email.into(), name.into())]))
+        .collect())
 }
 
 pub fn create(conn: &PgConnection, version: &str, project_id: i32) -> Release {
@@ -85,7 +125,7 @@ pub fn create(conn: &PgConnection, version: &str, project_id: i32) -> Release {
         project_id: project_id,
     };
 
-    diesel::insert(&new_release).into(releases::table)
+    insert(&new_release).into(releases::table)
         .get_result(conn)
         .expect("Error saving new release")
 }

@@ -11,6 +11,8 @@ use serde_json::value::Value;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::error::Error;
+use std::io::prelude::*;
+use std::io::stderr;
 use std::process::Command;
 use std::str;
 
@@ -59,7 +61,19 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
             let author_name = parts.next().unwrap();
             (sha_name, author_email, author_name)
         })
-        .collect();
+        .collect::<Vec<_>>();
+
+    if commits.is_empty() {
+        writeln!(
+            stderr(),
+            "Could not find commits between {} and {} (maybe the tag is \
+            missing?) Skipping.",
+            previous_release,
+            release_name
+        ).unwrap();
+        // https://github.com/diesel-rs/diesel/issues/797
+        return;
+    }
 
     connection.transaction::<_, Box<Error>, _>(|| {
         let (shas, commits): (Vec<_>, Vec<_>) =

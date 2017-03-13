@@ -215,10 +215,19 @@ pub fn all() -> Vec<Value> {
         .expect("Error finding the Rust project")
     };
 
-    let results = releases.filter(project_id.eq(project.id))
+    let mut results = releases.filter(project_id.eq(project.id))
         .filter(visible.eq(true))
         .load::<Release>(&connection)
         .expect("Error loading releases");
+
+    // Ensure master is at the top of the list.
+    match results.iter().position(|r| r.version == "master") {
+        Some(i) => {
+            let master = results.remove(i);
+            results.push(master);
+        },
+        _ => (),
+    };
 
     results.into_iter()
         .rev()

@@ -1,16 +1,20 @@
-use models::{Release, NewRelease};
-use models::Project;
+use models::*;
+use schema::*;
 
 use caseless;
 
-use diesel;
+use diesel::*;
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
 
 use serde_json::value::Value;
 
 use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::error::Error;
+use std::io::prelude::*;
+use std::io::stderr;
 use std::process::Command;
+use std::str;
 
 use slog::Logger;
 
@@ -21,6 +25,9 @@ use diesel::types::VarChar;
 sql_function!(lower, lower_t, (x: VarChar) -> VarChar);
 
 pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, release_project_id: i32, path: &str) {
+    use diesel::expression::dsl::any;
+    use diesel::pg::upsert::*;
+
     // Could take the connection as a parameter, as problably
     // it's already established somewhere...
     let connection = ::establish_connection();
@@ -33,71 +40,105 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
         .arg("--no-pager")
         .arg("log")
         .arg("--use-mailmap")
-        .arg(r#"--format=%H"#)
+        .arg(r#"--format=%H %ae %an"#)
         .arg(&format!("{}...{}", previous_release, release_name))
         .output()
         .expect("failed to execute process");
 
-    let git_log = git_log.stdout;
-    let git_log = String::from_utf8(git_log).unwrap();
-
-    for sha_name in git_log.split('\n') {
-        // there is a last, blank line
-        if sha_name == "" {
-            continue;
-        }
-
-        info!(log, "Assigning commit {} to release {}", sha_name, release_name);
-
-        use schema::releases::dsl::*;
-        use models::Release;
-        use schema::commits::dsl::*;
-        use models::Commit;
-
-        let the_release = releases
-            .filter(version.eq(&release_name))
-            .filter(project_id.eq(release_project_id))
-            .first::<Release>(&connection)
-            .expect("could not find release");
-
-        // did we make this commit earlier? If so, update it. If not, create it
-        match commits.filter(sha.eq(&sha_name)).first::<Commit>(&connection) {
-            Ok(the_commit) => {
-                info!(log, "Commit {} already exists in the database, just assigning it to release {}", sha_name, the_release.version);
-                diesel::update(commits.find(the_commit.id))
-                    .set(release_id.eq(the_release.id))
-                    .get_result::<Commit>(&connection)
-                    .expect(&format!("Unable to update commit {}", the_commit.id));
-            },
-            Err(_) => {
-                let git_log = Command::new("git")
-                    .arg("-C")
-                    .arg(&path)
-                    .arg("--no-pager")
-                    .arg("show")
-                    .arg(r#"--format=%H %ae %an"#)
-                    .arg(&sha_name)
-                    .output()
-                    .expect("failed to execute process");
-
-                let git_log = git_log.stdout;
-                let git_log = String::from_utf8(git_log).unwrap();
-
-                let log_line = git_log.split('\n').nth(0).unwrap();
-
-                let mut split = log_line.splitn(3, ' ');
-
-                let the_sha = split.next().unwrap();
-                let the_author_email = split.next().unwrap();
-                let the_author_name = split.next().unwrap();
-
-                info!(log, "Creating commit {} for release {}", the_sha, the_release.version);
-
-                let author = ::authors::load_or_create(&connection, &the_author_name, &the_author_email);
-                ::commits::create(&connection, &the_sha, &author, &the_release);
-            },
-        };
+    if !git_log.status.success() {
+        let stdout = str::from_utf8(&git_log.stdout).unwrap();
+        let stderr = str::from_utf8(&git_log.stderr).unwrap();
+        panic!(
+            "git log failed:\n\nstdout:\n{}\n\nstderr:\n{}",
+            stdout,
+            stderr,
+        );
     }
+
+    let the_release = releases::table
+        .filter(releases::version.eq(&release_name))
+        .filter(releases::project_id.eq(release_project_id))
+        .first::<Release>(&connection)
+        .expect("could not find release");
+
+    let commits = str::from_utf8(&git_log.stdout).unwrap()
+        .split('\n')
+        .filter(|s| !s.is_empty())
+        .map(|line| {
+            let mut parts = line.splitn(3, ' ');
+            let sha_name = parts.next().unwrap();
+            let author_email = parts.next().unwrap();
+            let author_name = parts.next().unwrap();
+            (sha_name, author_email, author_name)
+        })
+        .collect::<Vec<_>>();
+
+    if commits.is_empty() {
+        writeln!(
+            stderr(),
+            "Could not find commits between {} and {} (maybe the tag is \
+            missing?) Skipping.",
+            previous_release,
+            release_name
+        ).unwrap();
+        // https://github.com/diesel-rs/diesel/issues/797
+        return;
+    }
+
+    connection.transaction::<_, Box<Error>, _>(|| {
+        let (shas, commits): (Vec<_>, Vec<_>) =
+            authors_by_sha(&connection, commits)?
+                .into_iter()
+                .map(|(sha, author_id)| {
+                    (sha, NewCommit {
+                        sha: sha,
+                        release_id: the_release.id,
+                        author_id: author_id,
+                    })
+                })
+                .unzip();
+
+        // Set the release id of any commits that already existed
+        // FIXME: In Diesel 0.12 collapse this with the next line to use
+        // .on_conflict(sha, do_update().set(commits::release_id.eq(the_release.id)))
+        let updated = update(commits::table.filter(commits::sha.eq(any(shas))))
+            .set(commits::release_id.eq(the_release.id))
+            .execute(&connection)?;
+
+        let inserted = insert(&commits.on_conflict_do_nothing())
+            .into(commits::table)
+            .execute(&connection)?;
+
+        let total = updated + inserted;
+        if total == commits.len() {
+            Ok(())
+        } else {
+            Err(format!("Expected to create or update {} commits, \
+                         but only {} were", commits.len(), total).into())
+        }
+    }).expect("Error saving commits and authors");
+}
+
+type Sha<'a> = &'a str;
+type Email<'a> = &'a str;
+type Name<'a> = &'a str;
+type AuthorId = i32;
+
+/// Finds or creates all authors from a git log, and returns the given shas
+/// zipped with the id of the author in the database.
+fn authors_by_sha<'a>(conn: &PgConnection, git_log: Vec<(Sha<'a>, Email, Name)>)
+    -> QueryResult<Vec<(Sha<'a>, AuthorId)>>
+{
+    let new_authors = git_log.iter().map(|&(_, email, name)| {
+        NewAuthor { email: email, name: name }
+    }).collect();
+    let author_ids = ::authors::find_or_create_all(conn, new_authors)?
+        .into_iter()
+        .map(|author| ((author.email, author.name), author.id))
+        .collect::<HashMap<_, _>>();
+    Ok(git_log.into_iter()
+        .map(|(sha, email, name)| (sha, author_ids[&(email.into(), name.into())]))
+        .collect())
 }
 
 pub fn create(conn: &PgConnection, version: &str, project_id: i32) -> Release {
@@ -108,7 +149,7 @@ pub fn create(conn: &PgConnection, version: &str, project_id: i32) -> Release {
         project_id: project_id,
     };
 
-    diesel::insert(&new_release).into(releases::table)
+    insert(&new_release).into(releases::table)
         .get_result(conn)
         .expect("Error saving new release")
 }

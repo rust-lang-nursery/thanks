@@ -10,8 +10,8 @@ pub struct Project {
 #[derive(Debug,Identifiable,Queryable,Associations)]
 #[belongs_to(Release)]
 #[belongs_to(Author)]
+#[primary_key(sha)]
 pub struct Commit {
-    pub id: i32,
     pub sha: String,
     pub release_id: i32,
     pub author_id: i32,

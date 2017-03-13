@@ -45,6 +45,16 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
         .output()
         .expect("failed to execute process");
 
+    if !git_log.status.success() {
+        let stdout = str::from_utf8(&git_log.stdout).unwrap();
+        let stderr = str::from_utf8(&git_log.stderr).unwrap();
+        panic!(
+            "git log failed:\n\nstdout:\n{}\n\nstderr:\n{}",
+            stdout,
+            stderr,
+        );
+    }
+
     let the_release = releases::table
         .filter(releases::version.eq(&release_name))
         .filter(releases::project_id.eq(release_project_id))

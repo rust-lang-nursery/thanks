@@ -50,8 +50,8 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
         .expect("could not find release");
 
     let commits = str::from_utf8(&git_log.stdout).unwrap()
-        .trim()
         .split('\n')
+        .filter(|s| !s.is_empty())
         .map(|line| {
             let mut parts = line.splitn(3, ' ');
             let sha_name = parts.next().unwrap();

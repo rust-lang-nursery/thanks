@@ -53,7 +53,7 @@ pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, 
         .trim()
         .split('\n')
         .map(|line| {
-            let mut parts = line.split(' ');
+            let mut parts = line.splitn(3, ' ');
             let sha_name = parts.next().unwrap();
             let author_email = parts.next().unwrap();
             let author_name = parts.next().unwrap();

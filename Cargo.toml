@@ -1,63 +1,71 @@
 [package]
 authors = ["Steve Klabnik <steve@steveklabnik.com>"]
+build = "build.rs"
 name = "thanks"
 version = "0.1.0"
 
-build="build.rs"
-
-[workspace]
-
 [[bin]]
-name = "thanks"
 doc = false
+name = "thanks"
+
 [[bin]]
+doc = false
 name = "populate"
 path = "src/bin/populate.rs"
-doc = false
+
 [[bin]]
+doc = false
 name = "update-commit-db"
 path = "src/bin/update-commit-db.rs"
-doc = false
+
 [[bin]]
+doc = false
 name = "new-release"
 path = "src/bin/new-release.rs"
-doc = false
+
 [[bin]]
+doc = false
 name = "the-big-red-button"
 path = "src/bin/the-big-red-button.rs"
-doc = false
+
 [[bin]]
+doc = false
 name = "opt-out"
 path = "src/bin/opt-out.rs"
-doc = false
+
+[build-dependencies]
+diesel = "0.11.0"
+dotenv = "0.8.0"
 
 [dependencies]
+caseless = "0.1.2"
+clap = "2.19.0"
+diesel = "0.11.0"
+dotenv = "0.8.0"
 futures = "0.1.7"
+regex = "0.2.1"
 reqwest = "0.4.0"
+semver = "0.6.0"
 serde = "0.9.0"
 serde_derive = "0.9.0"
 serde_json = "0.9.0"
-diesel = "0.11.0"
-diesel_codegen = { version = "0.11.0", features = ["postgres"] }
-dotenv = "0.8.0"
-caseless = "0.1.2"
-unicode-normalization = "0.1.0"
-clap = "2.19.0"
 slog = "1.4.1"
 slog-term = "1.3.5"
-regex = "0.2.1"
+unicode-normalization = "0.1.0"
+
+[dependencies.diesel_codegen]
+features = ["postgres"]
+version = "0.11.0"
+
+[dependencies.handlebars]
+features = ["serde_type"]
+version = "0.25.0"
 
 [dependencies.http]
 path = "./http"
-
-[dependencies.handlebars]
-version = "0.25.0"
-features = ["serde_type"]
 
 [dependencies.hyper]
 branch = "master"
 git = "https://github.com/hyperium/hyper"
 
-[build-dependencies]
-diesel = "0.11.0"
-dotenv = "0.8.0"
+[workspace]

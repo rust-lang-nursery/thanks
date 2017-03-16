@@ -1,3 +1,5 @@
+use semver::Version;
+
 #[derive(Debug,Identifiable,Queryable,Associations)]
 #[has_many(releases)]
 pub struct Project {

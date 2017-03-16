@@ -5,6 +5,8 @@ extern crate diesel_codegen;
 
 extern crate dotenv;
 
+extern crate semver;
+
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 

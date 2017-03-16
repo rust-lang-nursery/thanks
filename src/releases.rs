@@ -8,6 +8,8 @@ use diesel::pg::PgConnection;
 
 use serde_json::value::Value;
 
+use semver::Version;
+
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::error::Error;
@@ -23,6 +25,18 @@ use unicode_normalization::UnicodeNormalization;
 // needed for case-insensitivity
 use diesel::types::VarChar;
 sql_function!(lower, lower_t, (x: VarChar) -> VarChar);
+
+impl Release {
+    /// provide a semver-compatible version
+    ///
+    /// rust's older versions were missing a minor version and so are not semver-compatible
+    fn semver_version(&self) -> Version {
+        Version::parse(&self.version).unwrap_or_else(|_| {
+            let v = format!("{}.0", self.version);
+            Version::parse(&v).unwrap()
+        })
+    }
+}
 
 pub fn assign_commits(log: &Logger, release_name: &str, previous_release: &str, release_project_id: i32, path: &str) {
     use diesel::expression::dsl::any;
@@ -242,6 +256,9 @@ fn char_cmp(a_char: char, b_char: char) -> Ordering {
     order
 }
 
+/// returns all releases
+///
+/// sorted in semver order
 pub fn all() -> Vec<Value> {
     use schema::releases::dsl::*;
     use models::Release;
@@ -261,14 +278,22 @@ pub fn all() -> Vec<Value> {
         .load::<Release>(&connection)
         .expect("Error loading releases");
 
-    // Ensure master is at the top of the list.
-    match results.iter().position(|r| r.version == "master") {
-        Some(i) => {
-            let master = results.remove(i);
-            results.push(master);
-        },
-        _ => (),
+    // sort the versions
+    //
+    // first we need to remove master as it is not a valid semver version, and
+    // master should be at the top anyway
+    let master = match results.iter().position(|r| r.version == "master") {
+        Some(i) => results.remove(i),
+        None => panic!("master release not found"),
     };
+
+    // next up, sort by semver version
+    results.sort_by(|a, b| {
+        a.semver_version().cmp(&b.semver_version())
+    });
+
+    // finally, push master/all-time back at the top
+    results.push(master);
 
     results.into_iter()
         .rev()

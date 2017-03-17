@@ -33,6 +33,11 @@ doc = false
 name = "opt-out"
 path = "src/bin/opt-out.rs"
 
+[[bin]]
+doc = false
+name = "maintenance"
+path = "src/bin/maintenance.rs"
+
 [build-dependencies]
 diesel = "0.11.0"
 dotenv = "0.8.0"

@@ -73,3 +73,11 @@ pub struct NewAuthor<'a> {
     pub name: &'a str,
     pub email: &'a str,
 }
+
+use super::schema::maintenances;
+
+#[derive(Debug, Identifiable, Queryable)]
+pub struct Maintenance {
+    pub id: i32,
+    pub enabled: bool,
+}

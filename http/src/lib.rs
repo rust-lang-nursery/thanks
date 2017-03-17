@@ -26,11 +26,14 @@ pub struct Request {
     request: hyper::server::Request,
 }
 
-pub enum Response {
-    Success {
-        data: BTreeMap,
-        template: String,
-    },
+pub struct Response {
+    pub data: BTreeMap,
+    pub template: String,
+    pub status: Status,
+}
+
+pub enum Status {
+    Ok,
     NotFound,
 }
 
@@ -181,15 +184,15 @@ impl Service for Server {
                 };
                 let response = route.handle(r);
 
-                match response {
-                    Response::Success { data, template } => {
-                        let body = self.build_template(&data, &template);
+                match response.status {
+                    Status::Ok=> {
+                        let body = self.build_template(&response.data, &response.template);
 
                         return ::futures::finished(hyper::server::Response::new()
                             .with_header(ContentType::html())
                             .with_body(body));
                     }
-                    Response::NotFound => {
+                    Status::NotFound => {
                         return ::futures::finished(hyper::server::Response::new().with_status(StatusCode::NotFound));
                     }
                 }
@@ -202,15 +205,15 @@ impl Service for Server {
             };
             let response = h(r);
 
-            match response {
-                Response::Success { data, template } => {
-                    let body = self.build_template(&data, &template);
+            match response.status {
+                Status::Ok => {
+                    let body = self.build_template(&response.data, &response.template);
 
                     return ::futures::finished(hyper::server::Response::new()
                         .with_header(ContentType::html())
                         .with_body(body));
                 }
-                Response::NotFound => {
+                Status::NotFound => {
                     return ::futures::finished(hyper::server::Response::new().with_status(StatusCode::NotFound));
                 }
             }

@@ -20,6 +20,7 @@ extern crate http;
 
 use http::Request;
 use http::Response;
+use http::Status;
 
 use regex::Captures;
 
@@ -67,7 +68,8 @@ fn root(_: Request) -> Response {
     data.insert("releases".to_string(),
                 Value::Array(thanks::releases::all()));
 
-    Response::Success {
+    Response {
+        status: Status::Ok,
         data: data,
         template: "index.hbs".to_string(),
     }
@@ -79,7 +81,8 @@ fn about(_: Request) -> Response {
     data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
-    Response::Success {
+    Response {
+        status: Status::Ok,
         data: data,
         template: "about.hbs".to_string(),
     }
@@ -98,7 +101,8 @@ fn all_time(_: Request) -> Response {
     data.insert("count".to_string(), Value::Number((scores.len() as u64).into()));
     data.insert("scores".to_string(), Value::Array(scores));
 
-    Response::Success {
+    Response {
+        status: Status::Ok,
         data: data,
         template: "all-time.hbs".to_string(),
     }
@@ -126,11 +130,16 @@ fn release(_: &Request, cap: Captures) -> Response {
             data.insert("names".to_string(), Value::Array(names));
         }
         None => {
-            return Response::NotFound;
+            return Response {
+                status: Status::NotFound,
+                data: data,
+                template: "release.hbs".to_string(),
+            };
         }
     }
 
-    Response::Success {
+    Response {
+        status: Status::Ok,
         data: data,
         template: "release.hbs".to_string(),
     }

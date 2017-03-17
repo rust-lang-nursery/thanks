@@ -34,7 +34,7 @@ pub enum Response {
     NotFound,
 }
 
-pub struct Contributors {
+pub struct Server {
     routes: Vec<Route>,
     catch_all_route: Option<fn(Request) -> Response>,
     template_root: String,
@@ -78,9 +78,9 @@ impl Route {
     }
 }
 
-impl Contributors {
-    pub fn new(template_root: String) -> Contributors {
-        Contributors {
+impl Server {
+    pub fn new(template_root: String) -> Server {
+        Server {
             routes: Vec::new(),
             catch_all_route: None,
             template_root: template_root,
@@ -125,7 +125,7 @@ impl Contributors {
     }
 }
 
-impl Service for Contributors {
+impl Service for Server {
     type Request = hyper::server::Request;
     type Response = hyper::server::Response;
     type Error = hyper::Error;
@@ -214,11 +214,9 @@ impl Service for Contributors {
     }
 }
 
-pub struct Server;
-
 impl Server {
-    pub fn run(&self, addr: &SocketAddr, thanks: Contributors) {
-        let a = std::sync::Arc::new(thanks);
+    pub fn run(self, addr: &SocketAddr) {
+        let a = std::sync::Arc::new(self);
 
         let server = Http::new().bind(addr, move || Ok(a.clone())).unwrap();
 

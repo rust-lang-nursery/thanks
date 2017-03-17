@@ -43,21 +43,19 @@ fn main() {
         .parse()
         .unwrap();
 
-    let server = http::Server;
+    let mut server = http::Server::new("templates".to_string());
 
-    let mut thanks = http::Contributors::new("templates".to_string());
+    server.add_route("/", root);
 
-    thanks.add_route("/", root);
+    server.add_route("/about", about);
 
-    thanks.add_route("/about", about);
+    server.add_route("/rust/all-time", all_time);
 
-    thanks.add_route("/rust/all-time", all_time);
-
-    thanks.add_regex_route("/([^/]+)/(.+)", release);
+    server.add_regex_route("/([^/]+)/(.+)", release);
 
     info!(log, "Starting server, listening on http://{}", addr);
 
-    server.run(&addr, thanks);
+    server.run(&addr);
 }
 
 fn root(_: Request) -> Response {

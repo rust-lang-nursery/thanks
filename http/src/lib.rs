@@ -123,6 +123,14 @@ impl Server {
         // That's all we need to build this thing
         handlebars.render("index", &data).unwrap()
     }
+
+    pub fn run(self, addr: &SocketAddr) {
+        let a = std::sync::Arc::new(self);
+
+        let server = Http::new().bind(addr, move || Ok(a.clone())).unwrap();
+
+        server.run().unwrap();
+    }
 }
 
 impl Service for Server {
@@ -211,15 +219,5 @@ impl Service for Server {
         ::futures::finished(hyper::server::Response::new()
                             .with_header(ContentType::html())
                             .with_status(StatusCode::NotFound))
-    }
-}
-
-impl Server {
-    pub fn run(self, addr: &SocketAddr) {
-        let a = std::sync::Arc::new(self);
-
-        let server = Http::new().bind(addr, move || Ok(a.clone())).unwrap();
-
-        server.run().unwrap();
     }
 }

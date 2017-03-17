@@ -5,7 +5,7 @@ extern crate reqwest;
 
 use hyper::StatusCode;
 use hyper::header::{ContentType, Location};
-use hyper::server::{Http, Service, Request, Response};
+use hyper::server::{Http, Service};
 
 use regex::{Regex, Captures};
 
@@ -14,19 +14,20 @@ use std::fs::File;
 use std::net::SocketAddr;
 use std::path::Path;
 
+
 pub struct Contributors {
     routes: Vec<Route>,
-    catch_all_route: Option<fn(Request) -> ::futures::Finished<Response, hyper::Error>>,
+    catch_all_route: Option<fn(hyper::server::Request) -> ::futures::Finished<hyper::server::Response, hyper::Error>>,
 }
 
 pub enum Route {
     Literal {
         path: String,
-        handler: fn(Request) -> ::futures::Finished<Response, hyper::Error>,
+        handler: fn(hyper::server::Request) -> ::futures::Finished<hyper::server::Response, hyper::Error>,
     },
     Regex {
         regex: Regex,
-        handler: fn(&Request, Captures) -> ::futures::Finished<Response, hyper::Error>,
+        handler: fn(&hyper::server::Request, Captures) -> ::futures::Finished<hyper::server::Response, hyper::Error>,
     },
 }
 
@@ -42,7 +43,7 @@ impl Route {
         }
     }
 
-    fn handle(&self, req: Request) -> ::futures::Finished<Response, hyper::Error> {
+    fn handle(&self, req: hyper::server::Request) -> ::futures::Finished<hyper::server::Response, hyper::Error> {
         match self {
             &Route::Literal { handler, .. } => {
                 handler(req)
@@ -65,7 +66,7 @@ impl Contributors {
         }
     }
 
-    pub fn add_route(&mut self, path: &str, handler: fn(Request) -> ::futures::Finished<Response, hyper::Error>) {
+    pub fn add_route(&mut self, path: &str, handler: fn(hyper::server::Request) -> ::futures::Finished<hyper::server::Response, hyper::Error>) {
         let path = path.to_string();
 
         self.routes.push(Route::Literal {
@@ -74,31 +75,31 @@ impl Contributors {
         });
     }
 
-    pub fn add_regex_route(&mut self, regex: &str, handler: fn(&Request, Captures) -> ::futures::Finished<Response, hyper::Error>) {
+    pub fn add_regex_route(&mut self, regex: &str, handler: fn(&hyper::server::Request, Captures) -> ::futures::Finished<hyper::server::Response, hyper::Error>) {
         self.routes.push(Route::Regex {
             regex: Regex::new(regex).unwrap(),
             handler: handler,
         });
     }
 
-    pub fn add_catch_all_route(&mut self, f: fn(Request) -> ::futures::Finished<Response, hyper::Error>) {
+    pub fn add_catch_all_route(&mut self, f: fn(hyper::server::Request) -> ::futures::Finished<hyper::server::Response, hyper::Error>) {
         self.catch_all_route = Some(f);
     }
 }
 
 impl Service for Contributors {
-    type Request = Request;
-    type Response = Response;
+    type Request = hyper::server::Request;
+    type Response = hyper::server::Response;
     type Error = hyper::Error;
-    type Future = ::futures::Finished<Response, hyper::Error>;
+    type Future = ::futures::Finished<hyper::server::Response, hyper::Error>;
 
-    fn call(&self, req: Request) -> Self::Future {
+    fn call(&self, req: hyper::server::Request) -> Self::Future {
         // redirect to ssl
         // from http://jaketrent.com/post/https-redirect-node-heroku/
         if let Some(raw) = req.headers().get_raw("x-forwarded-proto") {
             if raw != &b"https"[..] {
                 return ::futures::finished(
-                    Response::new()
+                    hyper::server::Response::new()
                     .with_header(Location(format!("https://thanks.rust-lang.org{}", req.path())))
                     .with_status(StatusCode::MovedPermanently)
                 );
@@ -111,7 +112,7 @@ impl Service for Contributors {
         // ... you trying to do something bad?
         if fs_path.contains("./") || fs_path.contains("../") {
             // GET OUT
-            return ::futures::finished(Response::new()
+            return ::futures::finished(hyper::server::Response::new()
                 .with_header(ContentType::html())
                 .with_status(StatusCode::NotFound));
         }
@@ -121,7 +122,7 @@ impl Service for Contributors {
             let mut source = Vec::new();
             f.read_to_end(&mut source).unwrap();
 
-            return ::futures::finished(Response::new()
+            return ::futures::finished(hyper::server::Response::new()
               .with_body(source));
         }
 
@@ -137,7 +138,7 @@ impl Service for Contributors {
             return h(req);
         }
 
-        ::futures::finished(Response::new()
+        ::futures::finished(hyper::server::Response::new()
                             .with_header(ContentType::html())
                             .with_status(StatusCode::NotFound))
     }

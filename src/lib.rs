@@ -89,3 +89,17 @@ pub fn scores() -> Vec<Value> {
         Value::Object(json_score)
     }).collect()
 }
+
+/// are we in maintenance mode?
+pub fn in_maintenance() -> bool {
+    use models::Maintenance;
+    use schema::maintenances::dsl::*;
+
+    let connection = establish_connection();
+
+    let model = maintenances.find(1)
+            .load::<Maintenance>(&connection)
+            .expect("Error loading maintenance model").remove(0);
+    
+    model.enabled
+}

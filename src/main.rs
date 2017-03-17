@@ -65,6 +65,8 @@ fn main() {
 fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
     let mut data: BTreeMap = BTreeMap::new();
 
+    data.insert("maintenance".to_string(),
+                Value::Bool(thanks::in_maintenance()));
 
     data.insert("releases".to_string(),
                 Value::Array(thanks::releases::all()));
@@ -77,7 +79,10 @@ fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
 }
 
 fn about(_: Request) -> futures::Finished<Response, hyper::Error> {
-    let data: BTreeMap = BTreeMap::new();
+    let mut data: BTreeMap = BTreeMap::new();
+
+    data.insert("maintenance".to_string(),
+                Value::Bool(thanks::in_maintenance()));
 
     let template = build_template(&data, "templates/about.hbs");
 
@@ -88,6 +93,9 @@ fn about(_: Request) -> futures::Finished<Response, hyper::Error> {
 
 fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
     let mut data: BTreeMap = BTreeMap::new();
+
+    data.insert("maintenance".to_string(),
+                Value::Bool(thanks::in_maintenance()));
 
     let scores = thanks::scores();
 
@@ -105,6 +113,9 @@ fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
 
 fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
     let mut data: BTreeMap = BTreeMap::new();
+
+    data.insert("maintenance".to_string(),
+                Value::Bool(thanks::in_maintenance()));
 
     let project = cap.get(1).unwrap();
     let project = project.as_str();
@@ -148,5 +159,4 @@ fn build_template(data: &BTreeMap, template_path: &str) -> String {
 
     // That's all we need to build this thing
     handlebars.render("index", &data).unwrap()
-
 }

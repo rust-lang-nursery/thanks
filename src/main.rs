@@ -18,16 +18,12 @@ extern crate slog_term;
 
 extern crate http;
 
-use hyper::StatusCode;
-use hyper::header::ContentType;
-use hyper::server::{Request, Response};
-
-use handlebars::Handlebars;
+use http::Request;
+use http::Response;
 
 use regex::Captures;
 
 use std::env;
-use std::path::Path;
 
 use serde_json::value::Value;
 
@@ -38,6 +34,7 @@ type BTreeMap = std::collections::BTreeMap<String, Value>;
 
 fn main() {
     dotenv::dotenv().ok();
+
     let log = slog::Logger::root(slog_term::streamer().full().build().fuse(),
                                  o!("version" => env!("CARGO_PKG_VERSION")));
 
@@ -47,7 +44,8 @@ fn main() {
         .unwrap();
 
     let server = http::Server;
-    let mut thanks = http::Contributors::new();
+
+    let mut thanks = http::Contributors::new("templates".to_string());
 
     thanks.add_route("/", root);
 
@@ -62,7 +60,7 @@ fn main() {
     server.run(&addr, thanks);
 }
 
-fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
+fn root(_: Request) -> Response {
     let mut data: BTreeMap = BTreeMap::new();
 
     data.insert("maintenance".to_string(),
@@ -71,27 +69,25 @@ fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
     data.insert("releases".to_string(),
                 Value::Array(thanks::releases::all()));
 
-    let template = build_template(&data, "templates/index.hbs");
-
-    ::futures::finished(Response::new()
-        .with_header(ContentType::html())
-        .with_body(template))
+    Response {
+        data: data,
+        template: "index.hbs".to_string(),
+    }
 }
 
-fn about(_: Request) -> futures::Finished<Response, hyper::Error> {
+fn about(_: Request) -> Response {
     let mut data: BTreeMap = BTreeMap::new();
 
     data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
-    let template = build_template(&data, "templates/about.hbs");
-
-    ::futures::finished(Response::new()
-        .with_header(ContentType::html())
-        .with_body(template))
+    Response {
+        data: data,
+        template: "about.hbs".to_string(),
+    }
 }
 
-fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
+fn all_time(_: Request) -> Response {
     let mut data: BTreeMap = BTreeMap::new();
 
     data.insert("maintenance".to_string(),
@@ -104,14 +100,13 @@ fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
     data.insert("count".to_string(), Value::Number((scores.len() as u64).into()));
     data.insert("scores".to_string(), Value::Array(scores));
 
-    let template = build_template(&data, "templates/all-time.hbs");
-
-    ::futures::finished(Response::new()
-        .with_header(ContentType::html())
-        .with_body(template))
+    Response {
+        data: data,
+        template: "all-time.hbs".to_string(),
+    }
 }
 
-fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
+fn release(_: &Request, cap: Captures) -> Response {
     let mut data: BTreeMap = BTreeMap::new();
 
     data.insert("maintenance".to_string(),
@@ -133,30 +128,13 @@ fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Err
             data.insert("names".to_string(), Value::Array(names));
         }
         None => {
-            return ::futures::finished(Response::new().with_status(StatusCode::NotFound));
+            // FIXME
+            // return ::futures::finished(Response::new().with_status(StatusCode::NotFound));
         }
     }
 
-    let template = build_template(&data, "templates/release.hbs");
-
-    ::futures::finished(Response::new()
-        .with_header(ContentType::html())
-        .with_body(template))
-}
-
-/// Constructs Handlebars template from the provided variable data. Uses partial templates
-/// to produce consistent container.
-fn build_template(data: &BTreeMap, template_path: &str) -> String {
-    let mut handlebars = Handlebars::new();
-    // Render the partials
-    handlebars.register_template_file("container", &Path::new("templates/container.hbs"))
-        .ok()
-        .unwrap();
-    handlebars.register_template_file("index", &Path::new(template_path)).ok().unwrap();
-    let mut data = data.clone();
-    // Add name of the container to be loaded (just a constant for now)
-    data.insert("parent".to_string(), Value::String("container".to_string()));
-
-    // That's all we need to build this thing
-    handlebars.render("index", &data).unwrap()
+    Response {
+        data: data,
+        template: "release.hbs".to_string(),
+    }
 }

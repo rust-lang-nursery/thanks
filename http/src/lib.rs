@@ -2,10 +2,14 @@ extern crate futures;
 extern crate hyper;
 extern crate regex;
 extern crate reqwest;
+extern crate serde_json;
+extern crate handlebars;
 
 use hyper::StatusCode;
 use hyper::header::{ContentType, Location};
 use hyper::server::{Http, Service};
+
+use handlebars::Handlebars;
 
 use regex::{Regex, Captures};
 
@@ -14,23 +18,33 @@ use std::fs::File;
 use std::net::SocketAddr;
 use std::path::Path;
 
+use serde_json::value::Value;
+// Rename type for crate
+type BTreeMap = std::collections::BTreeMap<String, Value>;
+
 pub struct Request {
     request: hyper::server::Request,
 }
 
+pub struct Response {
+    pub data: BTreeMap,
+    pub template: String,
+}
+
 pub struct Contributors {
     routes: Vec<Route>,
-    catch_all_route: Option<fn(Request) -> ::futures::Finished<hyper::server::Response, hyper::Error>>,
+    catch_all_route: Option<fn(Request) -> Response>,
+    template_root: String,
 }
 
 pub enum Route {
     Literal {
         path: String,
-        handler: fn(Request) -> ::futures::Finished<hyper::server::Response, hyper::Error>,
+        handler: fn(Request) -> Response,
     },
     Regex {
         regex: Regex,
-        handler: fn(&Request, Captures) -> ::futures::Finished<hyper::server::Response, hyper::Error>,
+        handler: fn(&Request, Captures) -> Response,
     },
 }
 
@@ -46,7 +60,7 @@ impl Route {
         }
     }
 
-    fn handle(&self, req: Request) -> ::futures::Finished<hyper::server::Response, hyper::Error> {
+    fn handle(&self, req: Request) -> Response {
         match self {
             &Route::Literal { handler, .. } => {
                 handler(req)
@@ -62,14 +76,15 @@ impl Route {
 }
 
 impl Contributors {
-    pub fn new() -> Contributors {
+    pub fn new(template_root: String) -> Contributors {
         Contributors {
             routes: Vec::new(),
             catch_all_route: None,
+            template_root: template_root,
         }
     }
 
-    pub fn add_route(&mut self, path: &str, handler: fn(Request) -> ::futures::Finished<hyper::server::Response, hyper::Error>) {
+    pub fn add_route(&mut self, path: &str, handler: fn(Request) -> Response) {
         let path = path.to_string();
 
         self.routes.push(Route::Literal {
@@ -78,15 +93,32 @@ impl Contributors {
         });
     }
 
-    pub fn add_regex_route(&mut self, regex: &str, handler: fn(&Request, Captures) -> ::futures::Finished<hyper::server::Response, hyper::Error>) {
+    pub fn add_regex_route(&mut self, regex: &str, handler: fn(&Request, Captures) -> Response) {
         self.routes.push(Route::Regex {
             regex: Regex::new(regex).unwrap(),
             handler: handler,
         });
     }
 
-    pub fn add_catch_all_route(&mut self, f: fn(Request) -> ::futures::Finished<hyper::server::Response, hyper::Error>) {
+    pub fn add_catch_all_route(&mut self, f: fn(Request) -> Response) {
         self.catch_all_route = Some(f);
+    }
+
+    fn build_template(&self, data: &BTreeMap, template_path: &str) -> String {
+        let mut handlebars = Handlebars::new();
+        // Render the partials
+        handlebars.register_template_file("container", &Path::new(&format!("{}/container.hbs", self.template_root)))
+            .ok()
+            .unwrap();
+        handlebars.register_template_file("index", &Path::new(&format!("{}/{}", self.template_root, template_path)))
+            .ok()
+            .unwrap();
+        let mut data = data.clone();
+        // Add name of the container to be loaded (just a constant for now)
+        data.insert("parent".to_string(), Value::String("container".to_string()));
+
+        // That's all we need to build this thing
+        handlebars.render("index", &data).unwrap()
     }
 }
 
@@ -136,7 +168,13 @@ impl Service for Contributors {
                 let r = Request {
                     request: req,
                 };
-                return route.handle(r);
+                let response = route.handle(r);
+
+                let body = self.build_template(&response.data, &response.template);
+
+                return ::futures::finished(hyper::server::Response::new()
+                    .with_header(ContentType::html())
+                    .with_body(body))
             }
         }
 
@@ -144,7 +182,13 @@ impl Service for Contributors {
             let r = Request {
                 request: req,
             };
-            return h(r);
+            let response = h(r);
+
+            let body = self.build_template(&response.data, &response.template);
+
+            return ::futures::finished(hyper::server::Response::new()
+                .with_header(ContentType::html())
+                .with_body(body));
         }
 
         ::futures::finished(hyper::server::Response::new()

@@ -69,7 +69,7 @@ fn root(_: Request) -> Response {
     data.insert("releases".to_string(),
                 Value::Array(thanks::releases::all()));
 
-    Response {
+    Response::Success {
         data: data,
         template: "index.hbs".to_string(),
     }
@@ -81,7 +81,7 @@ fn about(_: Request) -> Response {
     data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
-    Response {
+    Response::Success {
         data: data,
         template: "about.hbs".to_string(),
     }
@@ -100,7 +100,7 @@ fn all_time(_: Request) -> Response {
     data.insert("count".to_string(), Value::Number((scores.len() as u64).into()));
     data.insert("scores".to_string(), Value::Array(scores));
 
-    Response {
+    Response::Success {
         data: data,
         template: "all-time.hbs".to_string(),
     }
@@ -128,12 +128,11 @@ fn release(_: &Request, cap: Captures) -> Response {
             data.insert("names".to_string(), Value::Array(names));
         }
         None => {
-            // FIXME
-            // return ::futures::finished(Response::new().with_status(StatusCode::NotFound));
+            return Response::NotFound;
         }
     }
 
-    Response {
+    Response::Success {
         data: data,
         template: "release.hbs".to_string(),
     }

@@ -26,9 +26,12 @@ pub struct Request {
     request: hyper::server::Request,
 }
 
-pub struct Response {
-    pub data: BTreeMap,
-    pub template: String,
+pub enum Response {
+    Success {
+        data: BTreeMap,
+        template: String,
+    },
+    NotFound,
 }
 
 pub struct Contributors {
@@ -170,11 +173,18 @@ impl Service for Contributors {
                 };
                 let response = route.handle(r);
 
-                let body = self.build_template(&response.data, &response.template);
+                match response {
+                    Response::Success { data, template } => {
+                        let body = self.build_template(&data, &template);
 
-                return ::futures::finished(hyper::server::Response::new()
-                    .with_header(ContentType::html())
-                    .with_body(body))
+                        return ::futures::finished(hyper::server::Response::new()
+                            .with_header(ContentType::html())
+                            .with_body(body));
+                    }
+                    Response::NotFound => {
+                        return ::futures::finished(hyper::server::Response::new().with_status(StatusCode::NotFound));
+                    }
+                }
             }
         }
 
@@ -184,11 +194,18 @@ impl Service for Contributors {
             };
             let response = h(r);
 
-            let body = self.build_template(&response.data, &response.template);
+            match response {
+                Response::Success { data, template } => {
+                    let body = self.build_template(&data, &template);
 
-            return ::futures::finished(hyper::server::Response::new()
-                .with_header(ContentType::html())
-                .with_body(body));
+                    return ::futures::finished(hyper::server::Response::new()
+                        .with_header(ContentType::html())
+                        .with_body(body));
+                }
+                Response::NotFound => {
+                    return ::futures::finished(hyper::server::Response::new().with_status(StatusCode::NotFound));
+                }
+            }
         }
 
         ::futures::finished(hyper::server::Response::new()

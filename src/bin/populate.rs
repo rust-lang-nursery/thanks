@@ -140,14 +140,14 @@ fn main() {
 
     // create 0.1, which isn't in the loop because it will have everything assigned
     // to it by default
-    thanks::releases::create(&connection, "0.1", project.id);
+    thanks::releases::create(&connection, "0.1", project.id, true);
 
     for &(release, _) in releases.iter() {
-        thanks::releases::create(&connection, release, project.id);
+        thanks::releases::create(&connection, release, project.id, true);
     }
 
     // And create the release for all commits that are not released yet
-    thanks::releases::create(&connection, "master", project.id);
+    thanks::releases::create(&connection, "master", project.id, true);
 
     // create most commits
     //

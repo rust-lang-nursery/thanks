@@ -63,7 +63,7 @@ fn main() {
        panic!("Release {} already exists! Something must be wrong.", new_release_name);
     }
 
-    let new_release = thanks::releases::create(&connection, &new_release_name, project.id);
+    let new_release = thanks::releases::create(&connection, &new_release_name, project.id, true);
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);

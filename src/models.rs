@@ -63,6 +63,7 @@ use super::schema::releases;
 pub struct NewRelease<'a> {
     pub version: &'a str,
     pub project_id: i32,
+    pub visible: bool,
 }
 
 use super::schema::authors;

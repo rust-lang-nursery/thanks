@@ -12,10 +12,6 @@ extern crate regex;
 
 extern crate serde_json;
 
-#[macro_use]
-extern crate slog;
-extern crate slog_term;
-
 extern crate http;
 
 use http::Request;
@@ -29,13 +25,8 @@ use std::env;
 
 use serde_json::value::Value;
 
-use slog::DrainExt;
-
 fn main() {
     dotenv::dotenv().ok();
-
-    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(),
-                                 o!("version" => env!("CARGO_PKG_VERSION")));
 
     let addr = format!("0.0.0.0:{}",
                        env::args().nth(1).unwrap_or(String::from("1337")))
@@ -51,8 +42,6 @@ fn main() {
     server.add_route("/rust/all-time", all_time);
 
     server.add_regex_route("/([^/]+)/(.+)", release);
-
-    info!(log, "Starting server, listening on http://{}", addr);
 
     server.run(&addr);
 }

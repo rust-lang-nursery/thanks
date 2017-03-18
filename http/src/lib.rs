@@ -5,6 +5,10 @@ extern crate reqwest;
 extern crate serde_json;
 extern crate handlebars;
 
+#[macro_use]
+extern crate slog;
+extern crate slog_term;
+
 use hyper::StatusCode;
 use hyper::header::{ContentType, Location};
 use hyper::server::{Http, Service};
@@ -17,6 +21,9 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::net::SocketAddr;
 use std::path::Path;
+
+use slog::DrainExt;
+
 
 use serde_json::value::Value;
 // Rename type for crate
@@ -73,6 +80,7 @@ pub struct Server {
     routes: Vec<Route>,
     catch_all_route: Option<fn(Request) -> Response>,
     template_root: String,
+    log: slog::Logger,
 }
 
 pub enum Route {
@@ -119,6 +127,7 @@ impl Server {
             routes: Vec::new(),
             catch_all_route: None,
             template_root: template_root,
+            log: slog::Logger::root(slog_term::streamer().full().build().fuse(), o!()),
         }
     }
 
@@ -160,9 +169,12 @@ impl Server {
     }
 
     pub fn run(self, addr: &SocketAddr) {
+        info!(self.log, "Starting server, listening on http://{}", addr);
+
         let a = std::sync::Arc::new(self);
 
         let server = Http::new().bind(addr, move || Ok(a.clone())).unwrap();
+
 
         server.run().unwrap();
     }

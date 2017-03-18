@@ -155,12 +155,13 @@ fn authors_by_sha<'a>(conn: &PgConnection, git_log: Vec<(Sha<'a>, Email, Name)>)
         .collect())
 }
 
-pub fn create(conn: &PgConnection, version: &str, project_id: i32) -> Release {
+pub fn create(conn: &PgConnection, version: &str, project_id: i32, visible: bool) -> Release {
     use schema::releases;
 
     let new_release = NewRelease {
         version: version,
         project_id: project_id,
+        visible: visible,
     };
 
     insert(&new_release).into(releases::table)

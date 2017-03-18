@@ -12,109 +12,91 @@ extern crate regex;
 
 extern crate serde_json;
 
-#[macro_use]
-extern crate slog;
-extern crate slog_term;
-
 extern crate http;
 
-use hyper::StatusCode;
-use hyper::header::ContentType;
-use hyper::server::{Request, Response};
-
-use handlebars::Handlebars;
+use http::Request;
+use http::Response;
+use http::ResponseBuilder;
+use http::Status;
 
 use regex::Captures;
 
 use std::env;
-use std::path::Path;
 
 use serde_json::value::Value;
 
-use slog::DrainExt;
-
-// Rename type for crate
-type BTreeMap = std::collections::BTreeMap<String, Value>;
-
 fn main() {
     dotenv::dotenv().ok();
-    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(),
-                                 o!("version" => env!("CARGO_PKG_VERSION")));
 
     let addr = format!("0.0.0.0:{}",
                        env::args().nth(1).unwrap_or(String::from("1337")))
         .parse()
         .unwrap();
 
-    let server = http::Server;
-    let mut thanks = http::Contributors::new();
+    let mut server = http::Server::new("templates".to_string());
 
-    thanks.add_route("/", root);
+    server.add_route("/", root);
 
-    thanks.add_route("/about", about);
+    server.add_route("/about", about);
 
-    thanks.add_route("/rust/all-time", all_time);
+    server.add_route("/rust/all-time", all_time);
 
-    thanks.add_regex_route("/([^/]+)/(.+)", release);
+    server.add_regex_route("/([^/]+)/(.+)", release);
 
-    info!(log, "Starting server, listening on http://{}", addr);
-
-    server.run(&addr, thanks);
+    server.run(&addr);
 }
 
-fn root(_: Request) -> futures::Finished<Response, hyper::Error> {
-    let mut data: BTreeMap = BTreeMap::new();
+fn root(_: Request) -> Response {
+    let mut res = ResponseBuilder::new();
+    res.with_template("index.hbs".to_string());
 
-    data.insert("maintenance".to_string(),
+    res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
-    data.insert("releases".to_string(),
+    res.data.insert("releases".to_string(),
                 Value::Array(thanks::releases::all()));
 
-    let template = build_template(&data, "templates/index.hbs");
+    res.with_status(Status::Ok);
 
-    ::futures::finished(Response::new()
-        .with_header(ContentType::html())
-        .with_body(template))
+    res.to_response()
 }
 
-fn about(_: Request) -> futures::Finished<Response, hyper::Error> {
-    let mut data: BTreeMap = BTreeMap::new();
+fn about(_: Request) -> Response {
+    let mut res = ResponseBuilder::new();
+    res.with_template("about.hbs".to_string());
 
-    data.insert("maintenance".to_string(),
+    res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
-    let template = build_template(&data, "templates/about.hbs");
+    res.with_status(Status::Ok);
 
-    ::futures::finished(Response::new()
-        .with_header(ContentType::html())
-        .with_body(template))
+    res.to_response()
 }
 
-fn all_time(_: Request) -> futures::Finished<Response, hyper::Error> {
-    let mut data: BTreeMap = BTreeMap::new();
+fn all_time(_: Request) -> Response {
+    let mut res = ResponseBuilder::new();
+    res.with_template("all-time.hbs".to_string());
 
-    data.insert("maintenance".to_string(),
+    res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
     let scores = thanks::scores();
 
-    data.insert("release".to_string(),
+    res.data.insert("release".to_string(),
                 Value::String(String::from("all-time")));
-    data.insert("count".to_string(), Value::Number((scores.len() as u64).into()));
-    data.insert("scores".to_string(), Value::Array(scores));
+    res.data.insert("count".to_string(), Value::Number((scores.len() as u64).into()));
+    res.data.insert("scores".to_string(), Value::Array(scores));
 
-    let template = build_template(&data, "templates/all-time.hbs");
+    res.with_status(Status::Ok);
 
-    ::futures::finished(Response::new()
-        .with_header(ContentType::html())
-        .with_body(template))
+    res.to_response()
 }
 
-fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Error> {
-    let mut data: BTreeMap = BTreeMap::new();
+fn release(_: &Request, cap: Captures) -> Response {
+    let mut res = ResponseBuilder::new();
+    res.with_template("release.hbs".to_string());
 
-    data.insert("maintenance".to_string(),
+    res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
     let project = cap.get(1).unwrap();
@@ -123,40 +105,20 @@ fn release(_: &Request, cap: Captures) -> futures::Finished<Response, hyper::Err
     let release_name = cap.get(2).unwrap();
     let release_name = release_name.as_str();
 
-    data.insert("release".to_string(), Value::String(release_name.to_string()));
+    res.data.insert("release".to_string(), Value::String(release_name.to_string()));
 
     let names = thanks::releases::contributors(project, release_name);
 
     match names {
         Some(names) => {
-            data.insert("count".to_string(), Value::Number((names.len() as u64).into()));
-            data.insert("names".to_string(), Value::Array(names));
+            res.data.insert("count".to_string(), Value::Number((names.len() as u64).into()));
+            res.data.insert("names".to_string(), Value::Array(names));
+            res.with_status(Status::Ok);
         }
         None => {
-            return ::futures::finished(Response::new().with_status(StatusCode::NotFound));
+            res.with_status(Status::NotFound);
         }
     }
 
-    let template = build_template(&data, "templates/release.hbs");
-
-    ::futures::finished(Response::new()
-        .with_header(ContentType::html())
-        .with_body(template))
-}
-
-/// Constructs Handlebars template from the provided variable data. Uses partial templates
-/// to produce consistent container.
-fn build_template(data: &BTreeMap, template_path: &str) -> String {
-    let mut handlebars = Handlebars::new();
-    // Render the partials
-    handlebars.register_template_file("container", &Path::new("templates/container.hbs"))
-        .ok()
-        .unwrap();
-    handlebars.register_template_file("index", &Path::new(template_path)).ok().unwrap();
-    let mut data = data.clone();
-    // Add name of the container to be loaded (just a constant for now)
-    data.insert("parent".to_string(), Value::String("container".to_string()));
-
-    // That's all we need to build this thing
-    handlebars.render("index", &data).unwrap()
+    res.to_response()
 }

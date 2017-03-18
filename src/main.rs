@@ -20,6 +20,7 @@ extern crate http;
 
 use http::Request;
 use http::Response;
+use http::ResponseBuilder;
 use http::Status;
 
 use regex::Captures;
@@ -29,9 +30,6 @@ use std::env;
 use serde_json::value::Value;
 
 use slog::DrainExt;
-
-// Rename type for crate
-type BTreeMap = std::collections::BTreeMap<String, Value>;
 
 fn main() {
     dotenv::dotenv().ok();
@@ -60,58 +58,56 @@ fn main() {
 }
 
 fn root(_: Request) -> Response {
-    let mut data: BTreeMap = BTreeMap::new();
+    let mut res = ResponseBuilder::new();
+    res.with_template("index.hbs".to_string());
 
-    data.insert("maintenance".to_string(),
+    res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
-    data.insert("releases".to_string(),
+    res.data.insert("releases".to_string(),
                 Value::Array(thanks::releases::all()));
 
-    Response {
-        status: Status::Ok,
-        data: data,
-        template: "index.hbs".to_string(),
-    }
+    res.with_status(Status::Ok);
+
+    res.to_response()
 }
 
 fn about(_: Request) -> Response {
-    let mut data: BTreeMap = BTreeMap::new();
+    let mut res = ResponseBuilder::new();
+    res.with_template("about.hbs".to_string());
 
-    data.insert("maintenance".to_string(),
+    res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
-    Response {
-        status: Status::Ok,
-        data: data,
-        template: "about.hbs".to_string(),
-    }
+    res.with_status(Status::Ok);
+
+    res.to_response()
 }
 
 fn all_time(_: Request) -> Response {
-    let mut data: BTreeMap = BTreeMap::new();
+    let mut res = ResponseBuilder::new();
+    res.with_template("all-time.hbs".to_string());
 
-    data.insert("maintenance".to_string(),
+    res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
     let scores = thanks::scores();
 
-    data.insert("release".to_string(),
+    res.data.insert("release".to_string(),
                 Value::String(String::from("all-time")));
-    data.insert("count".to_string(), Value::Number((scores.len() as u64).into()));
-    data.insert("scores".to_string(), Value::Array(scores));
+    res.data.insert("count".to_string(), Value::Number((scores.len() as u64).into()));
+    res.data.insert("scores".to_string(), Value::Array(scores));
 
-    Response {
-        status: Status::Ok,
-        data: data,
-        template: "all-time.hbs".to_string(),
-    }
+    res.with_status(Status::Ok);
+
+    res.to_response()
 }
 
 fn release(_: &Request, cap: Captures) -> Response {
-    let mut data: BTreeMap = BTreeMap::new();
+    let mut res = ResponseBuilder::new();
+    res.with_template("release.hbs".to_string());
 
-    data.insert("maintenance".to_string(),
+    res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
 
     let project = cap.get(1).unwrap();
@@ -120,27 +116,20 @@ fn release(_: &Request, cap: Captures) -> Response {
     let release_name = cap.get(2).unwrap();
     let release_name = release_name.as_str();
 
-    data.insert("release".to_string(), Value::String(release_name.to_string()));
+    res.data.insert("release".to_string(), Value::String(release_name.to_string()));
 
     let names = thanks::releases::contributors(project, release_name);
 
     match names {
         Some(names) => {
-            data.insert("count".to_string(), Value::Number((names.len() as u64).into()));
-            data.insert("names".to_string(), Value::Array(names));
+            res.data.insert("count".to_string(), Value::Number((names.len() as u64).into()));
+            res.data.insert("names".to_string(), Value::Array(names));
+            res.with_status(Status::Ok);
         }
         None => {
-            return Response {
-                status: Status::NotFound,
-                data: data,
-                template: "release.hbs".to_string(),
-            };
+            res.with_status(Status::NotFound);
         }
     }
 
-    Response {
-        status: Status::Ok,
-        data: data,
-        template: "release.hbs".to_string(),
-    }
+    res.to_response()
 }

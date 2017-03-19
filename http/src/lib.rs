@@ -89,7 +89,7 @@ pub enum Status {
 
 pub struct Server {
     routes: Vec<Route>,
-    catch_all_route: Option<fn(Request) -> BoxFuture<Response, Error>>,
+    catch_all_route: Option<Route>,
     log: slog::Logger,
     pool: CpuPool,
     handlebars: Arc<Handlebars>,
@@ -104,6 +104,9 @@ pub enum Route {
         regex: Regex,
         handler: fn(&Request, Captures) -> BoxFuture<Response, Error>,
     },
+    CatchAll {
+        handler: fn(Request) -> BoxFuture<Response, Error>,
+    }
 }
 
 impl Route {
@@ -115,6 +118,9 @@ impl Route {
             &Route::Regex { ref regex, .. } => {
                 regex.is_match(path)
             },
+            &Route::CatchAll { .. } => {
+                true
+            }
         }
     }
 
@@ -128,6 +134,9 @@ impl Route {
                 let captures = regex.captures(req.request.path()).unwrap();
 
                 handler(&req, captures)
+            },
+            &Route::CatchAll { handler } => {
+                handler(req)
             },
         }
     }
@@ -172,8 +181,10 @@ impl Server {
         });
     }
 
-    pub fn add_catch_all_route(&mut self, f: fn(Request) -> BoxFuture<Response, Error>) {
-        self.catch_all_route = Some(f);
+    pub fn add_catch_all_route(&mut self, handler: fn(Request) -> BoxFuture<Response, Error>) {
+        self.catch_all_route = Some(Route::CatchAll {
+            handler: handler,
+        });
     }
 
     pub fn run(self, addr: &SocketAddr) {
@@ -259,12 +270,12 @@ impl Service for Server {
             }
         }
 
-        if let Some(h) = self.catch_all_route {
+        if let Some(ref h) = self.catch_all_route {
             let r = Request {
                 request: req,
             };
             let handlebars = self.handlebars.clone();
-            let response = h(r).and_then(move |response| {
+            let response = h.handle(r).and_then(move |response| {
                 match response.status {
                     Status::Ok => {
                         let body = handlebars.render(&response.template, &response.data).unwrap();

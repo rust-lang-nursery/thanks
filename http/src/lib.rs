@@ -4,6 +4,7 @@ extern crate regex;
 extern crate reqwest;
 extern crate serde_json;
 extern crate handlebars;
+extern crate futures_cpupool;
 
 #[macro_use]
 extern crate slog;
@@ -27,6 +28,8 @@ use slog::DrainExt;
 use futures::future::Future;
 use futures::future::FutureResult;
 use futures::BoxFuture;
+
+use futures_cpupool::CpuPool;
 
 use serde_json::value::Value;
 // Rename type for crate
@@ -88,6 +91,7 @@ pub struct Server {
     catch_all_route: Option<fn(Request) -> BoxFuture<Response, Error>>,
     template_root: String,
     log: slog::Logger,
+    pool: CpuPool,
 }
 
 pub enum Route {
@@ -135,6 +139,7 @@ impl Server {
             catch_all_route: None,
             template_root: template_root,
             log: slog::Logger::root(slog_term::streamer().full().build().fuse(), o!()),
+            pool: CpuPool::new(4), // FIXME: is this right? who knows!
         }
     }
 
@@ -202,13 +207,16 @@ impl Service for Server {
         }
 
         if Path::new(&fs_path).is_file() {
-            let mut f = File::open(&fs_path).unwrap();
-            let mut source = Vec::new();
-            f.read_to_end(&mut source).unwrap();
+            return self.pool.spawn_fn(move || {
+                let mut f = File::open(&fs_path).unwrap();
 
-            return ::futures::future::ok(hyper::server::Response::new()
-              .with_body(source))
-              .boxed();
+                let mut source = Vec::new();
+
+                f.read_to_end(&mut source).unwrap();
+
+                futures::future::ok(hyper::server::Response::new()
+                    .with_body(source))
+            }).boxed();
         }
 
         // next, we check routes

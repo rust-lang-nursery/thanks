@@ -24,6 +24,7 @@ use std::path::Path;
 
 use slog::DrainExt;
 
+use futures::future::FutureResult;
 
 use serde_json::value::Value;
 // Rename type for crate
@@ -184,14 +185,14 @@ impl Service for Server {
     type Request = hyper::server::Request;
     type Response = hyper::server::Response;
     type Error = hyper::Error;
-    type Future = ::futures::Finished<hyper::server::Response, hyper::Error>;
+    type Future = FutureResult<hyper::server::Response, hyper::Error>;
 
     fn call(&self, req: hyper::server::Request) -> Self::Future {
         // redirect to ssl
         // from http://jaketrent.com/post/https-redirect-node-heroku/
         if let Some(raw) = req.headers().get_raw("x-forwarded-proto") {
             if raw != &b"https"[..] {
-                return ::futures::finished(
+                return ::futures::future::ok(
                     hyper::server::Response::new()
                     .with_header(Location(format!("https://thanks.rust-lang.org{}", req.path())))
                     .with_status(StatusCode::MovedPermanently)
@@ -205,7 +206,7 @@ impl Service for Server {
         // ... you trying to do something bad?
         if fs_path.contains("./") || fs_path.contains("../") {
             // GET OUT
-            return ::futures::finished(hyper::server::Response::new()
+            return ::futures::future::ok(hyper::server::Response::new()
                 .with_header(ContentType::html())
                 .with_status(StatusCode::NotFound));
         }
@@ -215,7 +216,7 @@ impl Service for Server {
             let mut source = Vec::new();
             f.read_to_end(&mut source).unwrap();
 
-            return ::futures::finished(hyper::server::Response::new()
+            return ::futures::future::ok(hyper::server::Response::new()
               .with_body(source));
         }
 
@@ -232,12 +233,12 @@ impl Service for Server {
                     Status::Ok=> {
                         let body = self.build_template(&response.data, &response.template);
 
-                        return ::futures::finished(hyper::server::Response::new()
+                        return ::futures::future::ok(hyper::server::Response::new()
                             .with_header(ContentType::html())
                             .with_body(body));
                     }
                     Status::NotFound => {
-                        return ::futures::finished(hyper::server::Response::new().with_status(StatusCode::NotFound));
+                        return ::futures::future::ok(hyper::server::Response::new().with_status(StatusCode::NotFound));
                     }
                 }
             }
@@ -253,17 +254,17 @@ impl Service for Server {
                 Status::Ok => {
                     let body = self.build_template(&response.data, &response.template);
 
-                    return ::futures::finished(hyper::server::Response::new()
+                    return ::futures::future::ok(hyper::server::Response::new()
                         .with_header(ContentType::html())
                         .with_body(body));
                 }
                 Status::NotFound => {
-                    return ::futures::finished(hyper::server::Response::new().with_status(StatusCode::NotFound));
+                    return ::futures::future::ok(hyper::server::Response::new().with_status(StatusCode::NotFound));
                 }
             }
         }
 
-        ::futures::finished(hyper::server::Response::new()
+        ::futures::future::ok(hyper::server::Response::new()
                             .with_header(ContentType::html())
                             .with_status(StatusCode::NotFound))
     }

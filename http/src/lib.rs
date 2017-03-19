@@ -140,6 +140,27 @@ impl Route {
             },
         }
     }
+    fn render_with(&self, req: hyper::server::Request, handlebars: Arc<Handlebars>) -> BoxFuture<hyper::server::Response, hyper::Error> {
+        let r = Request {
+            request: req,
+        };
+        self.handle(r).and_then(move |response| {
+            match response.status {
+                Status::Ok=> {
+                    let body = handlebars.render(&response.template, &response.data).unwrap();
+
+                    futures::future::ok(hyper::server::Response::new()
+                        .with_header(ContentType::html())
+                        .with_body(body))
+                }
+                Status::NotFound => {
+                    ::futures::future::ok(hyper::server::Response::new().with_status(StatusCode::NotFound))
+                }
+            }
+        })
+        .map_err(|e| e.inner)
+        .boxed()
+    }
 }
 
 impl Server {
@@ -247,50 +268,14 @@ impl Service for Server {
         
         for route in &self.routes {
             if route.matches(req.path()) {
-                let r = Request {
-                    request: req,
-                };
                 let handlebars = self.handlebars.clone();
-                let response = route.handle(r).and_then(move |response| {
-                    match response.status {
-                        Status::Ok=> {
-                            let body = handlebars.render(&response.template, &response.data).unwrap();
-
-                            futures::future::ok(hyper::server::Response::new()
-                                .with_header(ContentType::html())
-                                .with_body(body))
-                        }
-                        Status::NotFound => {
-                            ::futures::future::ok(hyper::server::Response::new().with_status(StatusCode::NotFound))
-                        }
-                    }
-                }).map_err(|e| e.inner);
-
-                return response.boxed();
+                return route.render_with(req, handlebars);
             }
         }
 
         if let Some(ref h) = self.catch_all_route {
-            let r = Request {
-                request: req,
-            };
             let handlebars = self.handlebars.clone();
-            let response = h.handle(r).and_then(move |response| {
-                match response.status {
-                    Status::Ok => {
-                        let body = handlebars.render(&response.template, &response.data).unwrap();
-
-                        ::futures::future::ok(hyper::server::Response::new()
-                            .with_header(ContentType::html())
-                            .with_body(body))
-                    }
-                    Status::NotFound => {
-                        ::futures::future::ok(hyper::server::Response::new().with_status(StatusCode::NotFound))
-                    }
-                }
-            }).map_err(|e| e.inner);
-
-            return response.boxed();
+            return h.render_with(req, handlebars);
         }
 
         ::futures::future::ok(hyper::server::Response::new()

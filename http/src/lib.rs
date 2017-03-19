@@ -243,7 +243,7 @@ impl Service for Server {
                 let response = route.handle(r).and_then(move |response| {
                     match response.status {
                         Status::Ok=> {
-                            let body = build_template(&*handlebars, &response.data, &response.template);
+                            let body = handlebars.render(&response.template, &response.data).unwrap();
 
                             futures::future::ok(hyper::server::Response::new()
                                 .with_header(ContentType::html())
@@ -267,7 +267,7 @@ impl Service for Server {
             let response = h(r).and_then(move |response| {
                 match response.status {
                     Status::Ok => {
-                        let body = build_template(&handlebars, &response.data, &response.template);
+                        let body = handlebars.render(&response.template, &response.data).unwrap();
 
                         ::futures::future::ok(hyper::server::Response::new()
                             .with_header(ContentType::html())
@@ -286,13 +286,4 @@ impl Service for Server {
                             .with_header(ContentType::html())
                             .with_status(StatusCode::NotFound)).boxed()
     }
-}
-
-fn build_template(handlebars: &Handlebars, data: &BTreeMap, template_path: &str) -> String {
-    let mut data = data.clone();
-    // Add name of the container to be loaded (just a constant for now)
-    data.insert("parent".to_string(), Value::String("container".to_string()));
-
-    // That's all we need to build this thing
-    handlebars.render(template_path, &data).unwrap()
 }

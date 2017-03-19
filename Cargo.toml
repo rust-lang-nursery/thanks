@@ -38,6 +38,11 @@ doc = false
 name = "maintenance"
 path = "src/bin/maintenance.rs"
 
+[[bin]]
+doc = false
+name = "visible"
+path = "src/bin/visible.rs"
+
 [build-dependencies]
 diesel = "0.12.0"
 dotenv = "0.8.0"

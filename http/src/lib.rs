@@ -46,6 +46,13 @@ pub struct Response {
     status: Status,
 }
 
+impl Response {
+    /// just a tiny bit of ergonomics
+    pub fn into_future(self) -> BoxFuture<Response, Error> {
+        futures::future::ok(self).boxed()
+    }
+}
+
 pub struct Error {
     inner: hyper::Error,
 }

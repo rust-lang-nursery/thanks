@@ -20,7 +20,6 @@ use http::Error;
 use http::ResponseBuilder;
 use http::Status;
 
-use futures::Future;
 use futures::BoxFuture;
 
 use regex::Captures;
@@ -62,7 +61,7 @@ fn root(_: Request) -> BoxFuture<Response, Error> {
 
     res.with_status(Status::Ok);
 
-    futures::future::ok(res.to_response()).boxed()
+    res.to_response().into_future()
 }
 
 fn about(_: Request) -> BoxFuture<Response, Error> {
@@ -74,7 +73,7 @@ fn about(_: Request) -> BoxFuture<Response, Error> {
 
     res.with_status(Status::Ok);
 
-    futures::future::ok(res.to_response()).boxed()
+    res.to_response().into_future()
 }
 
 fn all_time(_: Request) -> BoxFuture<Response, Error> {
@@ -93,7 +92,7 @@ fn all_time(_: Request) -> BoxFuture<Response, Error> {
 
     res.with_status(Status::Ok);
 
-    futures::future::ok(res.to_response()).boxed()
+    res.to_response().into_future()
 }
 
 fn release(_: &Request, cap: Captures) -> BoxFuture<Response, http::Error> {
@@ -124,5 +123,5 @@ fn release(_: &Request, cap: Captures) -> BoxFuture<Response, http::Error> {
         }
     }
 
-    futures::future::ok(res.to_response()).boxed()
+    res.to_response().into_future()
 }

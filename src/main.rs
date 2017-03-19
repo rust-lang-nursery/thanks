@@ -16,8 +16,12 @@ extern crate http;
 
 use http::Request;
 use http::Response;
+use http::Error;
 use http::ResponseBuilder;
 use http::Status;
+
+use futures::Future;
+use futures::BoxFuture;
 
 use regex::Captures;
 
@@ -46,7 +50,7 @@ fn main() {
     server.run(&addr);
 }
 
-fn root(_: Request) -> Response {
+fn root(_: Request) -> BoxFuture<Response, Error> {
     let mut res = ResponseBuilder::new();
     res.with_template("index.hbs".to_string());
 
@@ -58,10 +62,10 @@ fn root(_: Request) -> Response {
 
     res.with_status(Status::Ok);
 
-    res.to_response()
+    futures::future::ok(res.to_response()).boxed()
 }
 
-fn about(_: Request) -> Response {
+fn about(_: Request) -> BoxFuture<Response, Error> {
     let mut res = ResponseBuilder::new();
     res.with_template("about.hbs".to_string());
 
@@ -70,10 +74,10 @@ fn about(_: Request) -> Response {
 
     res.with_status(Status::Ok);
 
-    res.to_response()
+    futures::future::ok(res.to_response()).boxed()
 }
 
-fn all_time(_: Request) -> Response {
+fn all_time(_: Request) -> BoxFuture<Response, Error> {
     let mut res = ResponseBuilder::new();
     res.with_template("all-time.hbs".to_string());
 
@@ -89,10 +93,10 @@ fn all_time(_: Request) -> Response {
 
     res.with_status(Status::Ok);
 
-    res.to_response()
+    futures::future::ok(res.to_response()).boxed()
 }
 
-fn release(_: &Request, cap: Captures) -> Response {
+fn release(_: &Request, cap: Captures) -> BoxFuture<Response, http::Error> {
     let mut res = ResponseBuilder::new();
     res.with_template("release.hbs".to_string());
 
@@ -120,5 +124,5 @@ fn release(_: &Request, cap: Captures) -> Response {
         }
     }
 
-    res.to_response()
+    futures::future::ok(res.to_response()).boxed()
 }

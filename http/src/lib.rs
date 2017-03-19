@@ -24,7 +24,9 @@ use std::path::Path;
 
 use slog::DrainExt;
 
+use futures::future::Future;
 use futures::future::FutureResult;
+use futures::BoxFuture;
 
 use serde_json::value::Value;
 // Rename type for crate
@@ -38,6 +40,10 @@ pub struct Response {
     data: BTreeMap,
     template: String,
     status: Status,
+}
+
+pub struct Error {
+    inner: hyper::Error,
 }
 
 pub struct ResponseBuilder {
@@ -79,7 +85,7 @@ pub enum Status {
 
 pub struct Server {
     routes: Vec<Route>,
-    catch_all_route: Option<fn(Request) -> Response>,
+    catch_all_route: Option<fn(Request) -> BoxFuture<Response, Error>>,
     template_root: String,
     log: slog::Logger,
 }
@@ -87,11 +93,11 @@ pub struct Server {
 pub enum Route {
     Literal {
         path: String,
-        handler: fn(Request) -> Response,
+        handler: fn(Request) -> BoxFuture<Response, Error>,
     },
     Regex {
         regex: Regex,
-        handler: fn(&Request, Captures) -> Response,
+        handler: fn(&Request, Captures) -> BoxFuture<Response, Error>,
     },
 }
 
@@ -107,7 +113,7 @@ impl Route {
         }
     }
 
-    fn handle(&self, req: Request) -> Response {
+    fn handle(&self, req: Request) -> BoxFuture<Response, Error> {
         match self {
             &Route::Literal { handler, .. } => {
                 handler(req)
@@ -132,7 +138,7 @@ impl Server {
         }
     }
 
-    pub fn add_route(&mut self, path: &str, handler: fn(Request) -> Response) {
+    pub fn add_route(&mut self, path: &str, handler: fn(Request) -> BoxFuture<Response, Error>) {
         let path = path.to_string();
 
         self.routes.push(Route::Literal {
@@ -141,32 +147,15 @@ impl Server {
         });
     }
 
-    pub fn add_regex_route(&mut self, regex: &str, handler: fn(&Request, Captures) -> Response) {
+    pub fn add_regex_route(&mut self, regex: &str, handler: fn(&Request, Captures) -> BoxFuture<Response, Error>) {
         self.routes.push(Route::Regex {
             regex: Regex::new(regex).unwrap(),
             handler: handler,
         });
     }
 
-    pub fn add_catch_all_route(&mut self, f: fn(Request) -> Response) {
+    pub fn add_catch_all_route(&mut self, f: fn(Request) -> BoxFuture<Response, Error>) {
         self.catch_all_route = Some(f);
-    }
-
-    fn build_template(&self, data: &BTreeMap, template_path: &str) -> String {
-        let mut handlebars = Handlebars::new();
-        // Render the partials
-        handlebars.register_template_file("container", &Path::new(&format!("{}/container.hbs", self.template_root)))
-            .ok()
-            .unwrap();
-        handlebars.register_template_file("index", &Path::new(&format!("{}/{}", self.template_root, template_path)))
-            .ok()
-            .unwrap();
-        let mut data = data.clone();
-        // Add name of the container to be loaded (just a constant for now)
-        data.insert("parent".to_string(), Value::String("container".to_string()));
-
-        // That's all we need to build this thing
-        handlebars.render("index", &data).unwrap()
     }
 
     pub fn run(self, addr: &SocketAddr) {
@@ -185,7 +174,7 @@ impl Service for Server {
     type Request = hyper::server::Request;
     type Response = hyper::server::Response;
     type Error = hyper::Error;
-    type Future = FutureResult<hyper::server::Response, hyper::Error>;
+    type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, req: hyper::server::Request) -> Self::Future {
         // redirect to ssl
@@ -196,7 +185,7 @@ impl Service for Server {
                     hyper::server::Response::new()
                     .with_header(Location(format!("https://thanks.rust-lang.org{}", req.path())))
                     .with_status(StatusCode::MovedPermanently)
-                );
+                ).boxed();
             }
         }
 
@@ -208,7 +197,8 @@ impl Service for Server {
             // GET OUT
             return ::futures::future::ok(hyper::server::Response::new()
                 .with_header(ContentType::html())
-                .with_status(StatusCode::NotFound));
+                .with_status(StatusCode::NotFound))
+                .boxed();
         }
 
         if Path::new(&fs_path).is_file() {
@@ -217,7 +207,8 @@ impl Service for Server {
             f.read_to_end(&mut source).unwrap();
 
             return ::futures::future::ok(hyper::server::Response::new()
-              .with_body(source));
+              .with_body(source))
+              .boxed();
         }
 
         // next, we check routes
@@ -227,20 +218,23 @@ impl Service for Server {
                 let r = Request {
                     request: req,
                 };
-                let response = route.handle(r);
+                let template_root = self.template_root.clone();
+                let response = route.handle(r).and_then(move |response| {
+                    match response.status {
+                        Status::Ok=> {
+                            let body = build_template(&template_root, &response.data, &response.template);
 
-                match response.status {
-                    Status::Ok=> {
-                        let body = self.build_template(&response.data, &response.template);
+                            futures::future::ok(hyper::server::Response::new()
+                                .with_header(ContentType::html())
+                                .with_body(body))
+                        }
+                        Status::NotFound => {
+                            ::futures::future::ok(hyper::server::Response::new().with_status(StatusCode::NotFound))
+                        }
+                    }
+                }).map_err(|e| e.inner);
 
-                        return ::futures::future::ok(hyper::server::Response::new()
-                            .with_header(ContentType::html())
-                            .with_body(body));
-                    }
-                    Status::NotFound => {
-                        return ::futures::future::ok(hyper::server::Response::new().with_status(StatusCode::NotFound));
-                    }
-                }
+                return response.boxed();
             }
         }
 
@@ -248,24 +242,44 @@ impl Service for Server {
             let r = Request {
                 request: req,
             };
-            let response = h(r);
+            let template_root = self.template_root.clone();
+            let response = h(r).and_then(move |response| {
+                match response.status {
+                    Status::Ok => {
+                        let body = build_template(&template_root, &response.data, &response.template);
 
-            match response.status {
-                Status::Ok => {
-                    let body = self.build_template(&response.data, &response.template);
+                        ::futures::future::ok(hyper::server::Response::new()
+                            .with_header(ContentType::html())
+                            .with_body(body))
+                    }
+                    Status::NotFound => {
+                        ::futures::future::ok(hyper::server::Response::new().with_status(StatusCode::NotFound))
+                    }
+                }
+            }).map_err(|e| e.inner);
 
-                    return ::futures::future::ok(hyper::server::Response::new()
-                        .with_header(ContentType::html())
-                        .with_body(body));
-                }
-                Status::NotFound => {
-                    return ::futures::future::ok(hyper::server::Response::new().with_status(StatusCode::NotFound));
-                }
-            }
+            return response.boxed();
         }
 
         ::futures::future::ok(hyper::server::Response::new()
                             .with_header(ContentType::html())
-                            .with_status(StatusCode::NotFound))
+                            .with_status(StatusCode::NotFound)).boxed()
     }
+}
+
+fn build_template(template_root: &str, data: &BTreeMap, template_path: &str) -> String {
+    let mut handlebars = Handlebars::new();
+    // Render the partials
+    handlebars.register_template_file("container", &Path::new(&format!("{}/container.hbs", template_root)))
+        .ok()
+        .unwrap();
+    handlebars.register_template_file("index", &Path::new(&format!("{}/{}", template_root, template_path)))
+        .ok()
+        .unwrap();
+    let mut data = data.clone();
+    // Add name of the container to be loaded (just a constant for now)
+    data.insert("parent".to_string(), Value::String("container".to_string()));
+
+    // That's all we need to build this thing
+    handlebars.render("index", &data).unwrap()
 }

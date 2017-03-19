@@ -39,13 +39,13 @@ name = "maintenance"
 path = "src/bin/maintenance.rs"
 
 [build-dependencies]
-diesel = "0.11.0"
+diesel = "0.12.0"
 dotenv = "0.8.0"
 
 [dependencies]
 caseless = "0.1.2"
 clap = "2.19.0"
-diesel = "0.11.0"
+diesel = "0.12.0"
 dotenv = "0.8.0"
 futures = "0.1.7"
 regex = "0.2.1"
@@ -60,7 +60,7 @@ unicode-normalization = "0.1.0"
 
 [dependencies.diesel_codegen]
 features = ["postgres"]
-version = "0.11.0"
+version = "0.12.0"
 
 [dependencies.handlebars]
 features = ["serde_type"]

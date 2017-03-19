@@ -19,14 +19,15 @@ use handlebars::Handlebars;
 use regex::{Regex, Captures};
 
 use std::io::prelude::*;
+use std::fs;
 use std::fs::File;
 use std::net::SocketAddr;
 use std::path::Path;
+use std::sync::Arc;
 
 use slog::DrainExt;
 
 use futures::future::Future;
-use futures::future::FutureResult;
 use futures::BoxFuture;
 
 use futures_cpupool::CpuPool;
@@ -89,9 +90,9 @@ pub enum Status {
 pub struct Server {
     routes: Vec<Route>,
     catch_all_route: Option<fn(Request) -> BoxFuture<Response, Error>>,
-    template_root: String,
     log: slog::Logger,
     pool: CpuPool,
+    handlebars: Arc<Handlebars>,
 }
 
 pub enum Route {
@@ -134,12 +135,24 @@ impl Route {
 
 impl Server {
     pub fn new(template_root: String) -> Server {
+        let mut handlebars = Handlebars::new();
+
+        for entry in fs::read_dir(&template_root).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            let name = path.file_stem().unwrap().to_str().unwrap();
+
+            handlebars.register_template_file(name, &path)
+                .ok()
+                .unwrap();
+        }
+
         Server {
             routes: Vec::new(),
             catch_all_route: None,
-            template_root: template_root,
             log: slog::Logger::root(slog_term::streamer().full().build().fuse(), o!()),
             pool: CpuPool::new(4), // FIXME: is this right? who knows!
+            handlebars: Arc::new(handlebars),
         }
     }
 
@@ -226,11 +239,11 @@ impl Service for Server {
                 let r = Request {
                     request: req,
                 };
-                let template_root = self.template_root.clone();
+                let handlebars = self.handlebars.clone();
                 let response = route.handle(r).and_then(move |response| {
                     match response.status {
                         Status::Ok=> {
-                            let body = build_template(&template_root, &response.data, &response.template);
+                            let body = build_template(&*handlebars, &response.data, &response.template);
 
                             futures::future::ok(hyper::server::Response::new()
                                 .with_header(ContentType::html())
@@ -250,11 +263,11 @@ impl Service for Server {
             let r = Request {
                 request: req,
             };
-            let template_root = self.template_root.clone();
+            let handlebars = self.handlebars.clone();
             let response = h(r).and_then(move |response| {
                 match response.status {
                     Status::Ok => {
-                        let body = build_template(&template_root, &response.data, &response.template);
+                        let body = build_template(&handlebars, &response.data, &response.template);
 
                         ::futures::future::ok(hyper::server::Response::new()
                             .with_header(ContentType::html())
@@ -275,19 +288,11 @@ impl Service for Server {
     }
 }
 
-fn build_template(template_root: &str, data: &BTreeMap, template_path: &str) -> String {
-    let mut handlebars = Handlebars::new();
-    // Render the partials
-    handlebars.register_template_file("container", &Path::new(&format!("{}/container.hbs", template_root)))
-        .ok()
-        .unwrap();
-    handlebars.register_template_file("index", &Path::new(&format!("{}/{}", template_root, template_path)))
-        .ok()
-        .unwrap();
+fn build_template(handlebars: &Handlebars, data: &BTreeMap, template_path: &str) -> String {
     let mut data = data.clone();
     // Add name of the container to be loaded (just a constant for now)
     data.insert("parent".to_string(), Value::String("container".to_string()));
 
     // That's all we need to build this thing
-    handlebars.render("index", &data).unwrap()
+    handlebars.render(template_path, &data).unwrap()
 }

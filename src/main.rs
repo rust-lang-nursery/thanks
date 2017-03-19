@@ -52,7 +52,7 @@ fn main() {
 
 fn root(_: Request) -> BoxFuture<Response, Error> {
     let mut res = ResponseBuilder::new();
-    res.with_template("index.hbs".to_string());
+    res.with_template("index".to_string());
 
     res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
@@ -67,7 +67,7 @@ fn root(_: Request) -> BoxFuture<Response, Error> {
 
 fn about(_: Request) -> BoxFuture<Response, Error> {
     let mut res = ResponseBuilder::new();
-    res.with_template("about.hbs".to_string());
+    res.with_template("about".to_string());
 
     res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
@@ -79,7 +79,7 @@ fn about(_: Request) -> BoxFuture<Response, Error> {
 
 fn all_time(_: Request) -> BoxFuture<Response, Error> {
     let mut res = ResponseBuilder::new();
-    res.with_template("all-time.hbs".to_string());
+    res.with_template("all-time".to_string());
 
     res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));
@@ -98,7 +98,7 @@ fn all_time(_: Request) -> BoxFuture<Response, Error> {
 
 fn release(_: &Request, cap: Captures) -> BoxFuture<Response, http::Error> {
     let mut res = ResponseBuilder::new();
-    res.with_template("release.hbs".to_string());
+    res.with_template("release".to_string());
 
     res.data.insert("maintenance".to_string(),
                 Value::Bool(thanks::in_maintenance()));

@@ -12,13 +12,13 @@ extern crate regex;
 
 extern crate serde_json;
 
-extern crate http;
+extern crate sparkles;
 
-use http::Request;
-use http::Response;
-use http::Error;
-use http::ResponseBuilder;
-use http::Status;
+use sparkles::Request;
+use sparkles::Response;
+use sparkles::Error;
+use sparkles::ResponseBuilder;
+use sparkles::Status;
 
 use futures::BoxFuture;
 
@@ -36,7 +36,7 @@ fn main() {
         .parse()
         .unwrap();
 
-    let mut server = http::Server::new("templates".to_string());
+    let mut server = sparkles::Server::new("templates".to_string());
 
     server.add_route("/", root);
 
@@ -95,7 +95,7 @@ fn all_time(_: Request) -> BoxFuture<Response, Error> {
     res.to_response().into_future()
 }
 
-fn release(_: &Request, cap: Captures) -> BoxFuture<Response, http::Error> {
+fn release(_: &Request, cap: Captures) -> BoxFuture<Response, Error> {
     let mut res = ResponseBuilder::new();
     res.with_template("release".to_string());
 

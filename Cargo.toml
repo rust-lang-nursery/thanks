@@ -71,11 +71,9 @@ version = "0.12.0"
 features = ["serde_type"]
 version = "0.25.0"
 
-[dependencies.http]
-path = "./http"
-
 [dependencies.hyper]
 branch = "master"
 git = "https://github.com/hyperium/hyper"
 
-[workspace]
+[dependencies.sparkles]
+git = "https://github.com/steveklabnik/sparkles"

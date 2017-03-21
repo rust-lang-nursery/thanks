@@ -27,7 +27,7 @@ pub struct Release {
     pub visible: bool,
 }
 
-#[derive(Debug,Identifiable,Queryable,Associations)]
+#[derive(Debug,Identifiable,Queryable,Associations, Clone)]
 #[has_many(commits)]
 pub struct Author {
     pub id: i32,
@@ -68,7 +68,7 @@ pub struct NewRelease<'a> {
 
 use super::schema::authors;
 
-#[derive(Insertable)]
+#[derive(Insertable, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[table_name="authors"]
 pub struct NewAuthor<'a> {
     pub name: &'a str,

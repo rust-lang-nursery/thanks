@@ -6,10 +6,12 @@ extern crate clap;
 #[macro_use]
 extern crate slog;
 extern crate slog_term;
+extern crate git2;
 
 use diesel::prelude::*;
 use clap::{App, Arg};
 use slog::DrainExt;
+use git2::Repository;
 
 fn main() {
     let matches = App::new("new-release")
@@ -46,10 +48,13 @@ fn main() {
     let path = matches.value_of("filepath").unwrap();
     info!(&log, "Path to {} repo: {}", project_name, path);
 
+    let repo = Repository::open(path).unwrap();
+
     use thanks::schema::releases::dsl::*;
     use thanks::models::Release;
     use thanks::schema::projects::dsl::{projects, name};
     use thanks::models::Project;
+    use thanks::authors::AuthorStore;
 
     let connection = thanks::establish_connection();
 
@@ -67,5 +72,6 @@ fn main() {
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);
-    thanks::releases::assign_commits(&log, &new_release.version, &release.version, project.id, &path);
+    let mut cache = AuthorStore::from_file(&connection, path);
+    thanks::releases::assign_commits(&log, &repo, &mut cache, &new_release.version, thanks::releases::get_commits(&repo, &new_release.version, &release.version), project.id);
 }

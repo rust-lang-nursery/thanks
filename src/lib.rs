@@ -3,9 +3,13 @@ extern crate diesel;
 #[macro_use]
 extern crate diesel_codegen;
 
+#[macro_use]
+extern crate lazy_static;
+
 extern crate dotenv;
 
 extern crate semver;
+extern crate regex;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
@@ -14,6 +18,7 @@ use dotenv::dotenv;
 
 extern crate caseless;
 extern crate unicode_normalization;
+extern crate git2;
 
 use std::env;
 
@@ -32,6 +37,7 @@ pub mod projects;
 pub mod releases;
 pub mod commits;
 pub mod authors;
+pub mod mailmap;
 
 use serde_json::value::Value;
 
@@ -100,6 +106,6 @@ pub fn in_maintenance() -> bool {
     let model = maintenances.find(1)
             .load::<Maintenance>(&connection)
             .expect("Error loading maintenance model").remove(0);
-    
+
     model.enabled
 }

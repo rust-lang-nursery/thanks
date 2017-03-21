@@ -18,6 +18,7 @@ extern crate serde_json;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use reqwest::Url;
+
 #[macro_use]
 extern crate slog;
 extern crate slog_term;
@@ -25,6 +26,8 @@ extern crate slog_term;
 use slog::DrainExt;
 
 use thanks::models::Project;
+use thanks::mailmap::Mailmap;
+use thanks::authors::AuthorStore;
 
 #[derive(Debug,Deserialize)]
 struct GitHubResponse(Vec<Object>);
@@ -46,7 +49,7 @@ struct Author {
     email: String,
 }
 
-fn update_commit_db(log: &slog::Logger, project: &Project, connection: &PgConnection) {
+fn update_commit_db(log: &slog::Logger, project: &Project, lookup: &mut AuthorStore, connection: &PgConnection) {
     use thanks::schema::releases::dsl::*;
     use thanks::models::Release;
     use thanks::schema::commits::dsl::*;
@@ -81,9 +84,11 @@ fn update_commit_db(log: &slog::Logger, project: &Project, connection: &PgConnec
             },
             Err(_) => {
                 info!(log, "Creating commit {} for release {}", object.sha, master_release.version);
-                let author = thanks::authors::load_or_create(&connection, &object.commit.author.name, &object.commit.author.email);
-                // this commit will be part of master
-                thanks::commits::create(connection, &object.sha, &author, &master_release);
+                {
+                    let author = lookup.get(&object.commit.author.name, &object.commit.author.email);
+                    // this commit will be part of master
+                    drop(thanks::commits::create(connection, &object.sha, &author, &master_release));
+                }
             },
         };
     }
@@ -95,9 +100,11 @@ fn main() {
     use thanks::schema::projects::dsl::*;
 
     let connection = thanks::establish_connection();
+    let mut lookup = AuthorStore::new(&connection, Mailmap::new(""));
+
     let projects_to_update: Vec<Project> = projects.load(&connection).expect("No projects found");
     for project in projects_to_update {
         info!(log, "Updating {}", project.name);
-        update_commit_db(&log, &project, &connection)
+        update_commit_db(&log, &project, &mut lookup, &connection)
     }
 }

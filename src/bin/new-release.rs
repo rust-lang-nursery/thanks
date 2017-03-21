@@ -34,6 +34,12 @@ fn main() {
             .help("new version number")
             .takes_value(true)
             .required(true))
+        .arg(Arg::with_name("changelog_link")
+            .short("l")
+            .long("link")
+            .help("link to release notes")
+            .takes_value(true)
+            .required(true))
         .get_matches();
 
     let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
@@ -47,6 +53,9 @@ fn main() {
     // get path
     let path = matches.value_of("filepath").unwrap();
     info!(&log, "Path to {} repo: {}", project_name, path);
+    // get changelog link
+    let changelog_link = matches.value_of("changelog_link").unwrap();
+    info!(&log, "Changelog link: {}", changelog_link);
 
     let repo = Repository::open(path).unwrap();
 
@@ -68,7 +77,7 @@ fn main() {
        panic!("Release {} already exists! Something must be wrong.", new_release_name);
     }
 
-    let new_release = thanks::releases::create(&connection, &new_release_name, project.id, true);
+    let new_release = thanks::releases::create(&connection, &new_release_name, project.id, true, &changelog_link);
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);

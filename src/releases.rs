@@ -152,13 +152,14 @@ fn authors_by_sha<'a>(cache: &mut AuthorStore<'a>, git_log: Vec<(String, String,
         .collect()
 }
 
-pub fn create(conn: &PgConnection, version: &str, project_id: i32, visible: bool) -> Release {
+pub fn create(conn: &PgConnection, version: &str, project_id: i32, visible: bool, link: &str) -> Release {
     use schema::releases;
 
     let new_release = NewRelease {
         version: version,
         project_id: project_id,
         visible: visible,
+        link: link,
     };
 
     insert(&new_release).into(releases::table)
@@ -297,4 +298,17 @@ pub fn all() -> Vec<Value> {
         .rev()
         .map(|r| Value::String(r.version))
         .collect()
+}
+
+pub fn by_version(release_version: &str) -> Option<Release> {
+    use schema::releases::dsl::*;
+    use models::Release;
+
+    let connection = ::establish_connection();
+
+    let mut results = releases.filter(version.eq(release_version))
+        .load::<Release>(&connection)
+        .expect("Error loading release");
+
+    results.pop()
 }

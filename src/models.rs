@@ -25,6 +25,7 @@ pub struct Release {
     pub version: String,
     pub project_id: i32,
     pub visible: bool,
+    pub link: String,
 }
 
 #[derive(Debug,Identifiable,Queryable,Associations, Clone)]
@@ -64,6 +65,7 @@ pub struct NewRelease<'a> {
     pub version: &'a str,
     pub project_id: i32,
     pub visible: bool,
+    pub link: &'a str,
 }
 
 use super::schema::authors;

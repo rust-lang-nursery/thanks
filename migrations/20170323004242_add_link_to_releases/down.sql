@@ -1,0 +1,2 @@
+ALTER TABLE releases
+DROP COLUMN link

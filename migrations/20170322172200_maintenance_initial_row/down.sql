@@ -1,2 +1,1 @@
-DELETE FROM maintenances
-    WHERE id = 1;
+DELETE FROM maintenances;

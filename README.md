@@ -33,7 +33,7 @@ up with your local postgres install.
 Build it:
 
 ```bash
-$ cargo install diesel_cli
+$ cargo install diesel_cli --no-default-features --features postgres
 $ diesel setup
 $ cargo build
 ```

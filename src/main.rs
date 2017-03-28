@@ -109,6 +109,10 @@ fn release(_: &Request, cap: Captures) -> BoxFuture<Response, Error> {
     let release_name = release_name.as_str();
 
     res.data.insert("release".to_string(), Value::String(release_name.to_string()));
+    match thanks::releases::by_version(release_name) {
+        Some(v) => res.data.insert("link".to_string(), Value::String(v.link)),
+        None    => None,
+    };
 
     let names = thanks::releases::contributors(project, release_name);
 

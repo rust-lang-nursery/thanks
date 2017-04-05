@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Rust Contributors</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="stylesheet" href="/styles/bootstrap.css" />
+    <link rel="stylesheet" href="/styles/styles.css" />
+    <link rel="stylesheet" href="/styles/custom.css" />
+</head>
+
+<body class="container">
+    <div class="center">
+        <h1 class="jumbo">
+        <img src="/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
+        <img src="/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
+        Thanks!
+        <img src="/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
+        <img src="/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
+      </h1>
+      {{#if maintenance}}
+      <div style="border-style: dashed; border-width: 5px; border-color: red; text-align: center;">
+          <h3>We are doing maintenance on the database</h3>
+          <p>You may see incorrect results. Sorry about that! It should be done soon.</p>
+      </div>
+      {{/if}}
+      {{~> content}}
+
+    </div>
+</body>
+
+</html>

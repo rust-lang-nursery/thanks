@@ -1,6 +1,10 @@
 [package]
+authors = ["steveklabnik <steve@steveklabnik.com>"]
 name = "thanks"
 version = "0.1.0"
-authors = ["steveklabnik <steve@steveklabnik.com>"]
 
 [dependencies]
+futures = "0.1.12"
+
+[dependencies.sparkles]
+git = "https://github.com/steveklabnik/sparkles.git"

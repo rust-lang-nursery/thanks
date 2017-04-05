@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 futures = "0.1.12"
+git2 = "0.6.4"
 
 [dependencies.sparkles]
 git = "https://github.com/steveklabnik/sparkles.git"

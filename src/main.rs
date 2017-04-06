@@ -60,6 +60,12 @@ lazy_static! {
     };
 }
 
+static RELEASES: [(&'static str, &'static str); 3] = [
+    ("1.16.0", "1.15.0"),
+    ("1.15.1", "1.15.0"),
+    ("1.15.0", "1.14.0"),
+];
+
 fn main() {
     // reference this to initialize it
     &REPOSITORY;

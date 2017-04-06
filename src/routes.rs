@@ -7,6 +7,7 @@ use std::collections::HashSet;
 use std::cmp::Ordering;
 use regex::Captures;
 use MAILMAP;
+use RELEASES;
 
 /// The handler for /
 pub fn root(_: Request) -> BoxFuture<Response, Error> {
@@ -40,13 +41,16 @@ pub fn release(_: &Request, cap: Captures) -> BoxFuture<Response, Error> {
 
     res.data.insert("release".to_string(), Value::String(release_name.to_string()));
 
+    // get release info
+    let previous = RELEASES.iter().find(|&&(r, p)| r == release_name).unwrap().1;
+
     // fetch info
     let repo = REPOSITORY.lock().unwrap();
 
     let mut data = HashSet::new();
 
     let mut walker = repo.revwalk().unwrap();
-    walker.push_range("1.15.0..1.16.0").unwrap();
+    walker.push_range(&format!("{}..{}", previous, release_name)).unwrap();
 
     for oid in walker {
         let oid = oid.unwrap();

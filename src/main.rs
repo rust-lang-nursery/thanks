@@ -13,9 +13,10 @@ mod routes;
 mod mailmap;
 
 use mailmap::Mailmap;
+use std::env;
+use std::fs::{self, File};
 use std::io::BufReader;
 use std::io::prelude::*;
-use std::fs::{self, File};
 use std::path::PathBuf;
 use std::sync::Mutex;
 
@@ -111,6 +112,9 @@ fn main() {
     server.add_route("/rust/all-time", routes::all_time);
     server.add_regex_route("/([^/]+)/(.+)", routes::release);
 
-    let addr = "0.0.0.0:8080".parse().unwrap();
+    let addr = format!("0.0.0.0:{}",
+                       env::args().nth(1).unwrap_or(String::from("1337")))
+        .parse()
+        .unwrap();
     server.run(&addr);
 }

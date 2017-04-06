@@ -119,3 +119,12 @@ fn char_cmp(a_char: char, b_char: char) -> Ordering {
 
     order
 }
+
+pub fn about(_: Request) -> BoxFuture<Response, Error> {
+    let mut res = ResponseBuilder::new();
+    res.with_template("about".to_string());
+
+    res.with_status(Status::Ok);
+
+    res.to_response().into_future()
+}

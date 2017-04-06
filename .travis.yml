@@ -1,0 +1,25 @@
+language: rust
+rust:
+- stable
+cache: cargo
+addons:
+  postgresql: '9.4'
+before_script:
+- "(cargo install diesel_cli || true)"
+- export PATH=$HOME/.cargo/bin:$PATH
+- cp .env.sample .env
+- diesel setup
+deploy:
+  provider: heroku
+  app: rust-contributors
+  on:
+    repo: rust-lang-nursery/thanks
+  api_key:
+    secure: VBtWlKXyNCaU09rAChCIRHaiI44IDNyjNdnPz5PrXDKbstl5Lwrd2CChhrytZuwu97NjY044Fir5AyR4jxl93T1MkedgPQqiFFqgsXS4YacnzbA0p+4E7XVxNiZPqzC93egiPnSXv7Vl0rluzC3Uaa7Gd3vy3Uqzppo0Gje9X2b2VPuwC9+G5IslIUzOxQ5l9HPs3FAJFzcPvDAsXeJMb73P80Bza5IOBPPw1NrZVMUzXAhNwoRb844obPB6+3axXVLg6gTi2DoOcRrWZRfjNCmzmSibIjJNKD31iHy5hO/k04Fn0ZB+fqBu2Toy+MQct7WAmcjEC0Ngr63ticK0TTKwGoG4W74aIJ3EtCOfpxQHWqi1mG2B5WMxS5Du9fowYyHIeTebQ/8QGCIZXZxwRDC6nTm6Ja72QeIgJrh/x0hpiV+ObKeaVtr6hCCIaBXo89M/ncOgvxijXRfmuojewWj9olKlD77FcR5ZNfNFT1WKIWiLnRxeL5P+9xeB6MJfPjKYQsBg/stNSueINY4qEnDWwMy6FSNN7NArBAvjMhp7iBFM278xSQ4P+EsaVqYC8dE/OIMyw4N7/V9SF3gGhA8aH94Lzs0J6kbdnqXHHCkqg7MyReK7d8P2nG3ISCYNDCLHjKeo+mrgIIaPhqXeGPPyEjttYETCdXHEX8d7or8=
+
+addons:
+    apt:
+      packages:
+        - cmake
+      sources:
+        - kalakris-cmake

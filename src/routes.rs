@@ -15,7 +15,7 @@ pub fn root(_: Request) -> BoxFuture<Response, Error> {
     res.with_template("index".to_string());
 
     let mut releases = vec!["master"];
-    releases.extend(RELEASES.into_iter().map(|&(a, b)| a));
+    releases.extend(RELEASES.into_iter().map(|&(a, b, c)| a));
 
     res.data.insert("releases".to_string(),
                 Value::from(releases));
@@ -38,10 +38,10 @@ pub fn release(_: &Request, cap: Captures) -> BoxFuture<Response, Error> {
 
     res.data.insert("release".to_string(), Value::String(release_name.to_string()));
 
-    let (release_name, previous) = if release_name == "master" {
-        ("HEAD", RELEASES[0].1)
+    let (release_name, previous, notes) = if release_name == "master" {
+        ("HEAD", RELEASES[0].1, "https://github.com/rust-lang/rust/blob/master/RELEASES.md")
     } else {
-        *RELEASES.iter().find(|&&(r, p)| r == release_name).unwrap()
+        *RELEASES.iter().find(|&&(r, p, n)| r == release_name).unwrap()
     };
 
     // fetch info
@@ -67,6 +67,7 @@ pub fn release(_: &Request, cap: Captures) -> BoxFuture<Response, Error> {
 
     res.data.insert("count".to_string(), Value::Number((names.len() as u64).into()));
     res.data.insert("names".to_string(), Value::Array(names));
+    res.data.insert("link".to_string(), Value::String(notes.to_string()));
     res.with_status(Status::Ok);
 
     res.to_response().into_future()

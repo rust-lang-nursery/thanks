@@ -1,2 +1,0 @@
-ALTER TABLE releases 
-ALTER COLUMN link SET NOT NULL

@@ -1,70 +1,38 @@
-#[macro_use]
-extern crate diesel;
-#[macro_use]
-extern crate diesel_codegen;
-
+extern crate caseless;
+extern crate git2;
 #[macro_use]
 extern crate lazy_static;
-
-extern crate dotenv;
-
-extern crate semver;
 extern crate regex;
-
-use diesel::prelude::*;
-use diesel::pg::PgConnection;
-
-use dotenv::dotenv;
-
-extern crate caseless;
-extern crate unicode_normalization;
-extern crate git2;
-
-use std::env;
-
 extern crate serde_json;
+extern crate unicode_normalization;
 
-use serde_json::Map;
+mod mailmap;
 
-#[macro_use]
-extern crate slog;
-extern crate slog_term;
+pub use mailmap::Mailmap;
+use serde_json::{Map, Value};
+use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
 
-pub mod schema;
-pub mod models;
+pub fn scores(repo: &git2::Repository, mailmap: &Mailmap) -> Vec<Value> {
+    let mut data = HashMap::new();
 
-pub mod projects;
-pub mod releases;
-pub mod commits;
-pub mod authors;
-pub mod mailmap;
+    let mut walker = repo.revwalk().unwrap();
+    walker.push_head().unwrap();
 
-use serde_json::value::Value;
+    for oid in walker {
+        let oid = oid.unwrap();
+        let commit = repo.find_commit(oid).unwrap();
+        let signature = commit.author();
+        let name = signature.name().unwrap();
+        let email = signature.email().unwrap();
+        let name = mailmap.map(name, email).0;
 
-pub fn establish_connection() -> PgConnection {
-    dotenv().ok();
+        let entry = data.entry(name).or_insert(0);
+        *entry += 1;
+    }
 
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
-}
-
-pub fn scores() -> Vec<Value> {
-    use schema::commits::dsl::*;
-    use schema::authors::dsl::*;
-    use diesel::expression::dsl::sql;
-    use diesel::types::BigInt;
-
-    let connection = establish_connection();
-
-    let scores: Vec<_> = commits.inner_join(authors)
-        .filter(visible.eq(true))
-        .select((name, sql::<BigInt>("COUNT(author_id) AS author_count")))
-        .group_by((author_id, name))
-        .order(sql::<BigInt>("author_count").desc())
-        .load(&connection)
-        .unwrap();
+    let mut scores: Vec<_> = data.into_iter().collect();
+    scores.sort_by(|a, b| b.1.cmp(&a.1));
 
     // these variables are used to calculate the ranking
     let mut rank = 0; // incremented every time
@@ -96,16 +64,71 @@ pub fn scores() -> Vec<Value> {
     }).collect()
 }
 
-/// are we in maintenance mode?
-pub fn in_maintenance() -> bool {
-    use models::Maintenance;
-    use schema::maintenances::dsl::*;
+pub fn names(release_name: &str, previous_release: &str, repo: &git2::Repository, mailmap: &Mailmap) -> Vec<Value> {
+    // fetch info
+    let mut data = HashSet::new();
 
-    let connection = establish_connection();
+    let mut walker = repo.revwalk().unwrap();
+    walker.push_range(&format!("{}..{}", previous_release, release_name)).unwrap();
 
-    let model = maintenances.find(1)
-            .load::<Maintenance>(&connection)
-            .expect("Error loading maintenance model").remove(0);
+    for oid in walker {
+        let oid = oid.unwrap();
+        let commit = repo.find_commit(oid).unwrap();
+        let signature = commit.author();
+        let name = signature.name().unwrap();
+        let email = signature.email().unwrap();
+        data.insert(mailmap.map(name, email).0);
+    }
 
-    model.enabled
+    let mut names: Vec<String> = data.into_iter().collect();
+    inaccurate_sort(&mut names);
+    names.into_iter().map(|v| Value::from(v)).collect()
+}
+
+// TODO: switch this out for an implementation of the Unicode Collation Algorithm
+fn inaccurate_sort(strings: &mut Vec<String>) {
+    strings.sort_by(|a, b| str_cmp(&a, &b));
+}
+
+fn str_cmp(a_raw: &str, b_raw: &str) -> Ordering {
+    use unicode_normalization::UnicodeNormalization;
+    let a: Vec<char> = a_raw.nfkd().filter(|&c| (c as u32) < 0x300 || (c as u32) > 0x36f).collect();
+    let b: Vec<char> = b_raw.nfkd().filter(|&c| (c as u32) < 0x300 || (c as u32) > 0x36f).collect();
+
+    for (&a_char, &b_char) in a.iter().zip(b.iter()) {
+        match char_cmp(a_char, b_char) {
+            Ordering::Less => return Ordering::Less,
+            Ordering::Greater => return Ordering::Greater,
+            Ordering::Equal => {}
+        }
+    }
+
+    if a.len() < b.len() {
+        Ordering::Less
+    } else if a.len() > b.len() {
+        Ordering::Greater
+    } else {
+        Ordering::Equal
+    }
+}
+
+fn char_cmp(a_char: char, b_char: char) -> Ordering {
+    let a = caseless::default_case_fold_str(&a_char.to_string());
+    let b = caseless::default_case_fold_str(&b_char.to_string());
+
+    let first_char = a.chars().nth(0).unwrap_or('{');
+
+    let order = if a == b && a.len() == 1 && 'a' <= first_char && first_char <= 'z' {
+        if a_char > b_char {
+            Ordering::Less
+        } else if a_char < b_char {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    } else {
+        a.cmp(&b)
+    };
+
+    order
 }

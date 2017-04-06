@@ -1,4 +1,0 @@
-CREATE TABLE maintenances (
-  id SERIAL PRIMARY KEY,
-  enabled BOOLEAN NOT NULL DEFAULT 'f'
-)

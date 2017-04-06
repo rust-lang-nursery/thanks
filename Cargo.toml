@@ -1,81 +1,16 @@
 [package]
-authors = ["Steve Klabnik <steve@steveklabnik.com>"]
-build = "build.rs"
+authors = ["steveklabnik <steve@steveklabnik.com>"]
 name = "thanks"
 version = "0.1.0"
 
-[[bin]]
-doc = false
-name = "thanks"
-
-[[bin]]
-doc = false
-name = "populate"
-path = "src/bin/populate.rs"
-
-[[bin]]
-doc = false
-name = "update-commit-db"
-path = "src/bin/update-commit-db.rs"
-
-[[bin]]
-doc = false
-name = "new-release"
-path = "src/bin/new-release.rs"
-
-[[bin]]
-doc = false
-name = "the-big-red-button"
-path = "src/bin/the-big-red-button.rs"
-
-[[bin]]
-doc = false
-name = "opt-out"
-path = "src/bin/opt-out.rs"
-
-[[bin]]
-doc = false
-name = "maintenance"
-path = "src/bin/maintenance.rs"
-
-[[bin]]
-doc = false
-name = "visible"
-path = "src/bin/visible.rs"
-
-[build-dependencies]
-diesel = "0.12.0"
-dotenv = "0.9.0"
-
 [dependencies]
-caseless = "0.1.2"
-clap = "2.19.0"
-diesel = "0.12.0"
-dotenv = "0.9.0"
-futures = "0.1.7"
+caseless = "0.1.3"
+futures = "0.1.12"
+git2 = "0.6.4"
+lazy_static = "0.2.6"
 regex = "0.2.1"
-reqwest = "0.4.0"
-semver = "0.6.0"
-serde = "0.9.0"
-serde_derive = "0.9.0"
-serde_json = "0.9.0"
-slog = "1.4.1"
-slog-term = "1.3.5"
-unicode-normalization = "0.1.0"
-git2 = "0.6"
-lazy_static = "0.2"
-
-[dependencies.diesel_codegen]
-features = ["postgres"]
-version = "0.12.0"
-
-[dependencies.handlebars]
-features = ["serde_type"]
-version = "0.25.0"
-
-[dependencies.hyper]
-branch = "master"
-git = "https://github.com/hyperium/hyper"
+serde_json = "0.9.9"
+unicode-normalization = "0.1.4"
 
 [dependencies.sparkles]
-git = "https://github.com/steveklabnik/sparkles"
+git = "https://github.com/steveklabnik/sparkles.git"

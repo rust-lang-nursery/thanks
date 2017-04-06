@@ -2,8 +2,8 @@ use caseless;
 use futures::BoxFuture;
 use sparkles::{Request, Response, ResponseBuilder, Status, Error};
 use REPOSITORY;
-use serde_json::Value;
-use std::collections::HashSet;
+use serde_json::{Value, Map};
+use std::collections::{HashSet, HashMap};
 use std::cmp::Ordering;
 use regex::Captures;
 use MAILMAP;
@@ -14,11 +14,8 @@ pub fn root(_: Request) -> BoxFuture<Response, Error> {
     let mut res = ResponseBuilder::new();
     res.with_template("index".to_string());
 
-    let releases = vec![
-        "1.16.0",
-        "1.15.1",
-        "1.15.0",
-    ];
+    let mut releases = vec!["master"];
+    releases.extend(RELEASES.into_iter().map(|&(a, b)| a));
 
     res.data.insert("releases".to_string(),
                 Value::from(releases));
@@ -41,8 +38,11 @@ pub fn release(_: &Request, cap: Captures) -> BoxFuture<Response, Error> {
 
     res.data.insert("release".to_string(), Value::String(release_name.to_string()));
 
-    // get release info
-    let previous = RELEASES.iter().find(|&&(r, p)| r == release_name).unwrap().1;
+    let (release_name, previous) = if release_name == "master" {
+        ("HEAD", RELEASES[0].1)
+    } else {
+        *RELEASES.iter().find(|&&(r, p)| r == release_name).unwrap()
+    };
 
     // fetch info
     let repo = REPOSITORY.lock().unwrap();
@@ -123,6 +123,71 @@ fn char_cmp(a_char: char, b_char: char) -> Ordering {
 pub fn about(_: Request) -> BoxFuture<Response, Error> {
     let mut res = ResponseBuilder::new();
     res.with_template("about".to_string());
+
+    res.with_status(Status::Ok);
+
+    res.to_response().into_future()
+}
+
+pub fn all_time(_: Request) -> BoxFuture<Response, Error> {
+    let mut res = ResponseBuilder::new();
+    res.with_template("all-time".to_string());
+
+    let repo = REPOSITORY.lock().unwrap();
+
+    let mut data = HashMap::new();
+
+    let mut walker = repo.revwalk().unwrap();
+    walker.push_head().unwrap();
+
+    for oid in walker {
+        let oid = oid.unwrap();
+        let commit = repo.find_commit(oid).unwrap();
+        let signature = commit.author();
+        let name = signature.name().unwrap();
+        let email = signature.email().unwrap();
+        let name = MAILMAP.map(name, email).0;
+
+        let entry = data.entry(name).or_insert(0);
+        *entry += 1;
+    }
+
+    let mut scores: Vec<_> = data.into_iter().collect();
+    scores.sort_by(|a, b| b.1.cmp(&a.1));
+
+    // these variables are used to calculate the ranking
+    let mut rank = 0; // incremented every time
+    let mut last_rank = 0; // the current rank
+    let mut last_score = 0; // the previous entry's score
+
+    let scores: Vec<_> = scores.into_iter().map(|(author, score)| {
+        // we always increment the ranking
+        rank += 1;
+
+        // if we've hit a different score...
+        if last_score != score {
+
+            // then we need to save these values for the future iteration
+            last_rank = rank;
+            last_score = score;
+        }
+
+        let mut json_score: Map<String, Value> = Map::new();
+
+        // we use last_rank here so that we get duplicate ranks for people
+        // with the same number of commits
+        json_score.insert("rank".to_string(), Value::Number(last_rank.into()));
+
+        json_score.insert("author".to_string(), Value::String(author));
+        json_score.insert("commits".to_string(), Value::Number(score.into()));
+
+        Value::Object(json_score)
+    }).collect();
+
+    res.data.insert("release".to_string(),
+                Value::String(String::from("all-time")));
+    res.data.insert("count".to_string(), Value::Number((scores.len() as u64).into()));
+    res.data.insert("scores".to_string(), Value::Array(scores));
 
     res.with_status(Status::Ok);
 

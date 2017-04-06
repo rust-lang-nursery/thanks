@@ -10,9 +10,8 @@ extern crate thanks;
 extern crate unicode_normalization;
 
 mod routes;
-mod mailmap;
 
-use mailmap::Mailmap;
+use thanks::Mailmap;
 use std::env;
 use std::fs::{self, File};
 use std::io::BufReader;

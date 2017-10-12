@@ -94,7 +94,7 @@ You can also delete only one project by passing `--name NAME` option.
 When it's time for a new release,
 
 ```bash
-$ cargo run --bin new-release -- --name Rust --version 1.15.0 --path ~/src/rust # or wherever your Rust is
+$ cargo run --bin new-release -- --name Rust --version 1.15.0 --path ~/src/rust # or wherever your Rust is --link http://link/to/changelog
 ```
 
 As often as you want to update, run

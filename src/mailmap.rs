@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use regex::Regex;
 
-const WHITESPACE: &'static str = r#"\s*"#;
-const MATCH_NAME: &'static str = "([^<>]+)";
-const MATCH_EMAIL: &'static str = "<([^<>]+)>";
+const WHITESPACE: &str = r#"\s*"#;
+const MATCH_NAME: &str = "([^<>]+)";
+const MATCH_EMAIL: &str = "<([^<>]+)>";
 
 // 'PNAME' =  Proper Name
 // 'PEMAIL =  Proper Email
@@ -13,7 +13,7 @@ lazy_static! {
     static ref PNAME_CEMAIL:             Regex = Regex::new(format!(r#"^{}{} {}\s*(#.*)?$"#,       WHITESPACE, MATCH_NAME,  MATCH_EMAIL).as_str()).unwrap();
     static ref PEMAIL_CEMAIL:            Regex = Regex::new(format!(r#"^{}{} {}\s*(#.*)?$"#,       WHITESPACE, MATCH_EMAIL, MATCH_EMAIL).as_str()).unwrap();
     static ref PNAME_PEMAIL_CEMAIL:      Regex = Regex::new(format!(r#"^{}{} {} {}\s*(#.*)?$"#,    WHITESPACE, MATCH_NAME,  MATCH_EMAIL, MATCH_EMAIL).as_str()).unwrap();
-    static ref PNAME_PEMAIL_CNAME_CMAIL: Regex = Regex::new(format!(r#"^{}{} {} {} {}\s*(#.*)?"#, WHITESPACE, MATCH_NAME,  MATCH_EMAIL, MATCH_NAME, MATCH_EMAIL).as_str()).unwrap();
+    static ref PNAME_PEMAIL_CNAME_CMAIL: Regex = Regex::new(format!(r#"^{}{} {} {} {}\s*(#.*)?"#,  WHITESPACE, MATCH_NAME,  MATCH_EMAIL, MATCH_NAME, MATCH_EMAIL).as_str()).unwrap();
 }
 
 #[derive(Debug)]
@@ -67,8 +67,8 @@ impl Mailmap {
             }
         }
 
-        for line in data.split("\n") {
-            if line.starts_with("#") {
+        for line in data.split('\n') {
+            if line.starts_with('#') {
                 continue;
             }
             if let Some(cap) = PNAME_CEMAIL.captures(line) {
@@ -91,7 +91,8 @@ impl Mailmap {
         //println!("Lookup: ({}, {}) -> {:?}", name, email, self.email_map.get(email));
         let (lower_name, lower_email) = (name.to_lowercase(), email.to_lowercase()) ;
         if let Some(r) = self.email_map.get(&lower_email) {
-            return (r.name.as_ref().map(|s| s.clone()).unwrap_or(name.to_owned()).clone(), r.email.as_ref().map(|s| s.clone()).unwrap_or(email.to_owned()).clone())
+            return (r.name.as_ref().cloned().unwrap_or_else(|| name.to_owned()).clone(), 
+                    r.email.as_ref().cloned().unwrap_or_else(|| email.to_owned()).clone())
         }
 
         if let Some(&(ref r_name, ref r_email)) = self.name_email_map.get(&(lower_name.clone(), lower_email.clone())) {
@@ -109,7 +110,10 @@ fn test_mailmap() {
         ($map:expr, $name:expr, $email:expr, $expected_name:expr, $expected_email:expr) => {
             {
                 let result: (String, String) = $map.map($name, $email);
-                assert_eq!(($expected_name.to_owned(), $expected_email.to_owned()), result, "Expected to map '{},{}' to '{},{}', but instead mapped to '{},{}'", $name, $email, $expected_name, $expected_email, result.0, result.1);
+                assert_eq!(($expected_name.to_owned(), $expected_email.to_owned()), 
+                           result, 
+                           "Expected to map '{},{}' to '{},{}', but instead mapped to '{},{}'", 
+                           $name, $email, $expected_name, $expected_email, result.0, result.1);
             }
         }
      }

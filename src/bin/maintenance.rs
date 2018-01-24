@@ -7,15 +7,17 @@ extern crate diesel;
 #[macro_use]
 extern crate slog;
 extern crate slog_term;
+extern crate slog_async;
 
 use clap::{App, Arg};
-use slog::DrainExt;
+use slog::Drain;
 
 use diesel::prelude::*;
 
 use thanks::models::Maintenance;
 
 fn main() {
+    // Parse commandline.
     let matches = App::new("maintenance")
         .about("let people know the db is re-building")
         .arg(Arg::with_name("on")
@@ -28,8 +30,14 @@ fn main() {
             .conflicts_with("on"))
         .get_matches();
 
-    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
+    // Setup logging.
+    let decorator = slog_term::TermDecorator::new().build();
+    let drain = slog_term::CompactFormat::new(decorator).build().fuse();
+    let drain = slog_async::Async::new(drain).build().fuse();
 
+    let log = slog::Logger::root(drain, o!("version" => env!("CARGO_PKG_VERSION")));
+
+    // Invert value in database.
     let connection = thanks::establish_connection();
 
     use thanks::schema::maintenances::dsl::*;

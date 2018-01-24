@@ -1,6 +1,6 @@
 [package]
 authors = ["Steve Klabnik <steve@steveklabnik.com>"]
-build = "build.rs"
+#build = "build.rs"
 name = "thanks"
 version = "0.1.0"
 
@@ -10,72 +10,42 @@ name = "thanks"
 
 [[bin]]
 doc = false
-name = "populate"
-path = "src/bin/populate.rs"
-
-[[bin]]
-doc = false
-name = "update-commit-db"
-path = "src/bin/update-commit-db.rs"
-
-[[bin]]
-doc = false
-name = "new-release"
-path = "src/bin/new-release.rs"
-
-[[bin]]
-doc = false
-name = "the-big-red-button"
-path = "src/bin/the-big-red-button.rs"
-
-[[bin]]
-doc = false
-name = "opt-out"
-path = "src/bin/opt-out.rs"
-
-[[bin]]
-doc = false
 name = "maintenance"
 path = "src/bin/maintenance.rs"
 
 [[bin]]
 doc = false
-name = "visible"
-path = "src/bin/visible.rs"
+name = "project-manager"
+path = "src/bin/project-manager.rs"
+
 
 [build-dependencies]
-diesel = "0.12.0"
-dotenv = "0.9.0"
+diesel = { version = "1.1.1", features = ["postgres"] }
+dotenv = "0.11.0"
 
 [dependencies]
-caseless = "0.1.2"
-clap = "2.19.0"
-diesel = "0.12.0"
-dotenv = "0.9.0"
-futures = "0.1.7"
-regex = "0.2.1"
-reqwest = "0.4.0"
-semver = "0.6.0"
-serde = "0.9.0"
-serde_derive = "0.9.0"
-serde_json = "0.9.0"
-slog = "1.4.1"
-slog-term = "1.3.5"
-unicode-normalization = "0.1.0"
-git2 = "0.6"
-lazy_static = "0.2"
+caseless = "0.2.0"
+clap = "2.31.1"
+diesel = { version = "1.1.1", features = ["postgres"] }
+dotenv = "0.11.0"
+futures = "0.1.18"
+git2 = "0.7.0"
+gotham = "0.2.0"
+gotham_derive = "0.2.0"
+handlebars = "0.32.0"
+hyper = "0.11.18"
+lazy_static = "1.0.0"
+mime = "0.3.5"
+regex = "0.2.6"
+reqwest = "0.8.5"
+semver = "0.9.0"
+serde = "1.0.27"
+serde_derive = "1.0.27"
+serde_json = "1.0.9"
+slog = "2.1.1"
+slog-term = "2.3.0"
+slog-async = "2.2.0"
+unicode-normalization = "0.1.5"
+time = "0.1.39"
+toml = "0.4.5"
 
-[dependencies.diesel_codegen]
-features = ["postgres"]
-version = "0.12.0"
-
-[dependencies.handlebars]
-features = ["serde_type"]
-version = "0.25.0"
-
-[dependencies.hyper]
-branch = "master"
-git = "https://github.com/hyperium/hyper"
-
-[dependencies.sparkles]
-git = "https://github.com/steveklabnik/sparkles"

@@ -1,0 +1,2 @@
+ALTER TABLE projects 
+ADD COLUMN dir_path VARCHAR NOT NULL

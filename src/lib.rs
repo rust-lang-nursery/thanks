@@ -1,7 +1,5 @@
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate diesel_codegen;
 
 #[macro_use]
 extern crate lazy_static;
@@ -20,23 +18,25 @@ extern crate caseless;
 extern crate unicode_normalization;
 extern crate git2;
 
+use git2::Repository;
+
 use std::env;
+
+use std::collections::HashMap;
 
 extern crate serde_json;
 
 use serde_json::Map;
 
-#[macro_use]
 extern crate slog;
 extern crate slog_term;
+extern crate slog_async;
 
 pub mod schema;
 pub mod models;
 
 pub mod projects;
 pub mod releases;
-pub mod commits;
-pub mod authors;
 pub mod mailmap;
 
 use serde_json::value::Value;
@@ -50,21 +50,56 @@ pub fn establish_connection() -> PgConnection {
         .expect(&format!("Error connecting to {}", database_url))
 }
 
-pub fn scores() -> Vec<Value> {
-    use schema::commits::dsl::*;
-    use schema::authors::dsl::*;
-    use diesel::expression::dsl::sql;
-    use diesel::types::BigInt;
+pub fn scores(repo_path: &str) -> Vec<Value> {
+    let repo = match Repository::open(repo_path) {
+        Ok(v) => v,
+        Err(e) => panic!("failed to open: {}", e),
+    };
 
-    let connection = establish_connection();
+    let mut walk = match repo.revwalk() {
+        Ok(v) => v,
+        Err(e) => panic!("failed getting revwalk: {}", e),
+    };
 
-    let scores: Vec<_> = commits.inner_join(authors)
-        .filter(visible.eq(true))
-        .select((name, sql::<BigInt>("COUNT(author_id) AS author_count")))
-        .group_by((author_id, name))
-        .order(sql::<BigInt>("author_count").desc())
-        .load(&connection)
-        .unwrap();
+    match walk.push_head() {
+        Ok(()) => (),
+        Err(e) => panic!("failed pushing head onto revwalk: {}", e),
+    };
+
+    // Walk the commit graph and collect the authors.
+    let mut auth_count: HashMap<String, u64> = HashMap::new();
+    for res in walk {
+        let oid = match res {
+            Ok(v) => v,
+            Err(e) => panic!("failed getting object walked on: {}", e),
+        };
+
+        let commit = match repo.find_commit(oid) {
+            Ok(v) => v,
+            Err(e) => panic!("walked commit oid is missing or not a commit: {}", e),
+        };
+
+        let author = commit.author().to_owned();
+        
+        let mut author_name = match author.name() {
+            Some(v) => v.to_owned(),
+            None => panic!("failed getting author name"),
+        };
+        
+        let counter = auth_count.entry(author_name).or_insert(0);
+        *counter += 1;
+    }
+
+    // Convert the dictionary to a vec of tuples: String, u64.
+    let mut scores: Vec<(String, u64)> = vec!();
+
+    for (k, v) in &auth_count {
+        scores.push((k.to_owned(), v.to_owned()));
+    }
+
+    scores.sort_by(|&(_, ref b), &(_, ref d)| d.cmp(b));
+
+    // End of walk
 
     // these variables are used to calculate the ranking
     let mut rank = 0; // incremented every time
@@ -96,7 +131,7 @@ pub fn scores() -> Vec<Value> {
     }).collect()
 }
 
-/// are we in maintenance mode?
+/// `in_maintenace` checks the db to see if we are in maintenance mode.
 pub fn in_maintenance() -> bool {
     use models::Maintenance;
     use schema::maintenances::dsl::*;

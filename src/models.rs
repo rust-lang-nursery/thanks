@@ -1,10 +1,10 @@
-#[derive(Debug,Identifiable,Queryable,Associations)]
-#[has_many(releases)]
+#[derive(Debug,Identifiable,Queryable,Associations,Clone)]
 pub struct Project {
     pub id: i32,
     pub name: String,
     pub url_path: String,
     pub github_name: String,
+    pub dir_path: String,
 }
 
 #[derive(Debug,Identifiable,Queryable,Associations)]
@@ -18,8 +18,6 @@ pub struct Commit {
 }
 
 #[derive(Debug,Identifiable,Queryable,Associations)]
-#[has_many(commits)]
-#[belongs_to(Project)]
 pub struct Release {
     pub id: i32,
     pub version: String,
@@ -29,7 +27,6 @@ pub struct Release {
 }
 
 #[derive(Debug,Identifiable,Queryable,Associations, Clone)]
-#[has_many(commits)]
 pub struct Author {
     pub id: i32,
     pub name: String,
@@ -45,6 +42,7 @@ pub struct NewProject<'a> {
     pub name: &'a str,
     pub url_path: &'a str,
     pub github_name: &'a str,
+    pub dir_path: &'a str,
 }
 
 use super::schema::commits;

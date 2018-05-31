@@ -1,12 +1,12 @@
 extern crate thanks;
 
-extern crate diesel;
 extern crate clap;
+extern crate diesel;
 
+extern crate git2;
 #[macro_use]
 extern crate slog;
 extern crate slog_term;
-extern crate git2;
 
 use diesel::prelude::*;
 use clap::{App, Arg};
@@ -16,33 +16,44 @@ use git2::Repository;
 fn main() {
     let matches = App::new("new-release")
         .about("create a new release")
-        .arg(Arg::with_name("filepath")
-            .short("p")
-            .long("path")
-            .help("filepath of the rust source code")
-            .takes_value(true)
-            .required(true))
-        .arg(Arg::with_name("project_name")
-            .short("n")
-            .long("name")
-            .help("name of the project")
-            .takes_value(true)
-            .required(true))
-        .arg(Arg::with_name("version")
-            .short("v")
-            .long("version")
-            .help("new version number")
-            .takes_value(true)
-            .required(true))
-        .arg(Arg::with_name("changelog_link")
-            .short("l")
-            .long("link")
-            .help("link to release notes")
-            .takes_value(true)
-            .required(true))
+        .arg(
+            Arg::with_name("filepath")
+                .short("p")
+                .long("path")
+                .help("filepath of the rust source code")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("project_name")
+                .short("n")
+                .long("name")
+                .help("name of the project")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("version")
+                .short("v")
+                .long("version")
+                .help("new version number")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("changelog_link")
+                .short("l")
+                .long("link")
+                .help("link to release notes")
+                .takes_value(true)
+                .required(true),
+        )
         .get_matches();
 
-    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
+    let log = slog::Logger::root(
+        slog_term::streamer().full().build().fuse(),
+        o!("version" => env!("CARGO_PKG_VERSION")),
+    );
 
     // get name
     let project_name = matches.value_of("project_name").unwrap();
@@ -61,26 +72,52 @@ fn main() {
 
     use thanks::schema::releases::dsl::*;
     use thanks::models::Release;
-    use thanks::schema::projects::dsl::{projects, name};
+    use thanks::schema::projects::dsl::{name, projects};
     use thanks::models::Project;
     use thanks::authors::AuthorStore;
 
     let connection = thanks::establish_connection();
 
-    let project = projects.filter(name.eq(project_name)).first::<Project>(&connection).expect("Unknown project!");
-    let release = Release::belonging_to(&project).order(id.desc()).first::<Release>(&connection).unwrap();
+    let project = projects
+        .filter(name.eq(project_name))
+        .first::<Project>(&connection)
+        .expect("Unknown project!");
+    let release = Release::belonging_to(&project)
+        .order(id.desc())
+        .first::<Release>(&connection)
+        .unwrap();
 
     info!(log, "Previous release: {}", release.version);
     info!(log, "Creating new release: {}", new_release_name);
 
-    if Release::belonging_to(&project).filter(version.eq(&new_release_name)).first::<Release>(&connection).is_ok() {
-       panic!("Release {} already exists! Something must be wrong.", new_release_name);
+    if Release::belonging_to(&project)
+        .filter(version.eq(&new_release_name))
+        .first::<Release>(&connection)
+        .is_ok()
+    {
+        panic!(
+            "Release {} already exists! Something must be wrong.",
+            new_release_name
+        );
     }
 
-    let new_release = thanks::releases::create(&connection, &new_release_name, project.id, true, &changelog_link);
+    let new_release = thanks::releases::create(
+        &connection,
+        &new_release_name,
+        project.id,
+        true,
+        &changelog_link,
+    );
     info!(log, "Created release {}", new_release.version);
 
     info!(log, "Assigning commits for {}", new_release.version);
     let mut cache = AuthorStore::from_file(&connection, path);
-    thanks::releases::assign_commits(&log, &repo, &mut cache, &new_release.version, thanks::releases::get_commits(&repo, &new_release.version, &release.version), project.id);
+    thanks::releases::assign_commits(
+        &log,
+        &repo,
+        &mut cache,
+        &new_release.version,
+        thanks::releases::get_commits(&repo, &new_release.version, &release.version),
+        project.id,
+    );
 }

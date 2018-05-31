@@ -44,7 +44,14 @@ impl Release {
 
 use std::io::prelude::*;
 
-pub fn assign_commits(log: &Logger, repo: &Repository, cache: &mut AuthorStore, release_name: &str, commits: Vec<Oid>, release_project_id: i32) {
+pub fn assign_commits(
+    log: &Logger,
+    repo: &Repository,
+    cache: &mut AuthorStore,
+    release_name: &str,
+    commits: Vec<Oid>,
+    release_project_id: i32,
+) {
     use diesel::pg::upsert::*;
 
     // Could take the connection as a parameter, as problably
@@ -53,22 +60,26 @@ pub fn assign_commits(log: &Logger, repo: &Repository, cache: &mut AuthorStore, 
 
     info!(log, "Assigning commits to release {}", release_name);
 
-
     let the_release = releases::table
         .filter(releases::version.eq(&release_name))
         .filter(releases::project_id.eq(release_project_id))
         .first::<Release>(&connection)
         .expect("could not find release");
 
-    let temp_commits = commits.into_iter().map(|id| {
-        let commit = repo.find_commit(id).unwrap();
-        let author = commit.author().to_owned();
-        (commit, author)
-    }).collect::<Vec<_>>();
+    let temp_commits = commits
+        .into_iter()
+        .map(|id| {
+            let commit = repo.find_commit(id).unwrap();
+            let author = commit.author().to_owned();
+            (commit, author)
+        })
+        .collect::<Vec<_>>();
     let mut parsed_commits = Vec::new();
 
     for &(ref commit, ref author) in temp_commits.iter() {
-        let (mapped_name, mapped_email) = cache.get_mailmap().map(author.name().unwrap(), author.email().unwrap());
+        let (mapped_name, mapped_email) = cache
+            .get_mailmap()
+            .map(author.name().unwrap(), author.email().unwrap());
         parsed_commits.push((format!("{}", commit.id()), mapped_name, mapped_email));
     }
 
@@ -76,83 +87,110 @@ pub fn assign_commits(log: &Logger, repo: &Repository, cache: &mut AuthorStore, 
         writeln!(
             stderr(),
             "Could not find commits for {} (maybe the tag is \
-            missing?) Skipping.",
+             missing?) Skipping.",
             release_name
         ).unwrap();
         // https://github.com/diesel-rs/diesel/issues/797
         return;
     }
 
-    connection.transaction::<_, Box<Error>, _>(|| {
-        let by_sha = authors_by_sha(cache, parsed_commits);
-        let commits: Vec<_> = {
-            by_sha
-                .iter()
-                .map(|&(ref sha, author_id)| {
-                    NewCommit {
+    connection
+        .transaction::<_, Box<Error>, _>(|| {
+            let by_sha = authors_by_sha(cache, parsed_commits);
+            let commits: Vec<_> = {
+                by_sha
+                    .iter()
+                    .map(|&(ref sha, author_id)| NewCommit {
                         sha: sha.as_str(),
                         release_id: the_release.id,
                         author_id: author_id,
-                    }
-                }).collect()
-        };
+                    })
+                    .collect()
+            };
 
+            // Set the release id of any commits that already existed
+            let inserted = insert(&commits.on_conflict(
+                commits::sha,
+                do_update().set(commits::release_id.eq(the_release.id)),
+            )).into(commits::table)
+                .execute(&connection)?;
 
-        // Set the release id of any commits that already existed
-        let inserted = insert(&commits.on_conflict(commits::sha, do_update().set(commits::release_id.eq(the_release.id))))
-            .into(commits::table)
-            .execute(&connection)?;
-
-        if inserted == commits.len() {
-            Ok(())
-        } else {
-            Err(format!("Expected to create or update {} commits, \
-                         but only {} were", commits.len(), inserted).into())
-        }
-    }).expect("Error saving commits and authors");
+            if inserted == commits.len() {
+                Ok(())
+            } else {
+                Err(format!(
+                    "Expected to create or update {} commits, \
+                     but only {} were",
+                    commits.len(),
+                    inserted
+                ).into())
+            }
+        })
+        .expect("Error saving commits and authors");
 }
 
 pub fn get_first_commits(repo: &Repository, release_name: &str) -> Vec<Oid> {
     let mut walk = repo.revwalk().unwrap();
-    walk.push(repo.revparse(release_name).unwrap().from().unwrap().id()).unwrap();
+    walk.push(repo.revparse(release_name).unwrap().from().unwrap().id())
+        .unwrap();
     walk.into_iter().map(|id| id.unwrap()).collect()
 }
-
 
 // libgit2 currently doesn't support the symmetric difference (triple dot or 'A...B') notation.
 // We replicate it using the union of 'A..B' and 'B..A'
 pub fn get_commits(repo: &Repository, release_name: &str, previous_release: &str) -> Vec<Oid> {
     let mut walk_1 = repo.revwalk().unwrap();
-    walk_1.push_range(format!("{}..{}", previous_release, release_name).as_str()).unwrap();
+    walk_1
+        .push_range(format!("{}..{}", previous_release, release_name).as_str())
+        .unwrap();
 
     let mut walk_2 = repo.revwalk().unwrap();
-    walk_2.push_range(format!("{}..{}", release_name, previous_release).as_str()).unwrap();
+    walk_2
+        .push_range(format!("{}..{}", release_name, previous_release).as_str())
+        .unwrap();
 
-    walk_1.into_iter().map(|id| id.unwrap()).chain(walk_2.into_iter().map(|id| id.unwrap())).collect()
+    walk_1
+        .into_iter()
+        .map(|id| id.unwrap())
+        .chain(walk_2.into_iter().map(|id| id.unwrap()))
+        .collect()
 }
 
 type AuthorId = i32;
 
 /// Finds or creates all authors from a git log, and returns the given shas
 /// zipped with the id of the author in the database.
-fn authors_by_sha<'a>(cache: &mut AuthorStore<'a>, git_log: Vec<(String, String, String)>)
-    -> Vec<(String, AuthorId)>
-{
-    let new_authors = git_log.iter().map(|&(_, ref name, ref email)| {
-        NewAuthor { email: email.as_str(), name: name.as_str() }
-    }).collect();
-    let author_ids = cache.find_or_create_all(new_authors)
+fn authors_by_sha<'a>(
+    cache: &mut AuthorStore<'a>,
+    git_log: Vec<(String, String, String)>,
+) -> Vec<(String, AuthorId)> {
+    let new_authors = git_log
+        .iter()
+        .map(|&(_, ref name, ref email)| NewAuthor {
+            email: email.as_str(),
+            name: name.as_str(),
+        })
+        .collect();
+    let author_ids = cache
+        .find_or_create_all(new_authors)
         .into_iter()
         .map(|author| ((author.name, author.email), author.id))
         .collect::<HashMap<_, _>>();
-    git_log.iter()
+    git_log
+        .iter()
         .map(|&(ref sha, ref name, ref email)| {
             (sha.clone(), author_ids[&(name.clone(), email.clone())])
         })
         .collect()
 }
 
-pub fn create(conn: &PgConnection, version: &str, project_id: i32, visible: bool, link: &str) -> Release {
+pub fn create(
+    conn: &PgConnection,
+    version: &str,
+    project_id: i32,
+    visible: bool,
+    link: &str,
+) -> Release {
     use schema::releases;
 
     let new_release = NewRelease {
@@ -162,7 +200,8 @@ pub fn create(conn: &PgConnection, version: &str, project_id: i32, visible: bool
         link: link,
     };
 
-    insert(&new_release).into(releases::table)
+    insert(&new_release)
+        .into(releases::table)
         .get_result(conn)
         .expect("Error saving new release")
 }
@@ -177,31 +216,40 @@ pub fn contributors(project: &str, release_name: &str) -> Option<Vec<Value>> {
     let project = {
         use schema::projects::dsl::*;
 
-        match projects.filter(lower(name).eq(lower(project)))
-            .first::<Project>(&connection) {
-                Ok(p) => p,
-                Err(_) => {
-                    return None;
-                }
+        match projects
+            .filter(lower(name).eq(lower(project)))
+            .first::<Project>(&connection)
+        {
+            Ok(p) => p,
+            Err(_) => {
+                return None;
+            }
         }
     };
 
     let release: Release = match releases
         .filter(version.eq(release_name))
         .filter(project_id.eq(project.id))
-        .first(&connection) {
-            Ok(release) => release,
-                Err(_) => {
-                    return None;
-                },
-        };
+        .first(&connection)
+    {
+        Ok(release) => release,
+        Err(_) => {
+            return None;
+        }
+    };
 
     // it'd be better to do this in the db
     // but Postgres doesn't do Unicode collation correctly on OSX
     // http://postgresql.nabble.com/Collate-order-on-Mac-OS-X-text-with-diacritics-in-UTF-8-td1912473.html
     use schema::authors;
-    let mut names: Vec<String> = authors::table.inner_join(commits).filter(release_id.eq(release.id))
-        .filter(authors::visible.eq(true)).select(authors::name).distinct().load(&connection).unwrap();
+    let mut names: Vec<String> = authors::table
+        .inner_join(commits)
+        .filter(release_id.eq(release.id))
+        .filter(authors::visible.eq(true))
+        .select(authors::name)
+        .distinct()
+        .load(&connection)
+        .unwrap();
 
     inaccurate_sort(&mut names);
 
@@ -214,8 +262,14 @@ pub fn inaccurate_sort(strings: &mut Vec<String>) {
 }
 
 fn str_cmp(a_raw: &str, b_raw: &str) -> Ordering {
-    let a: Vec<char> = a_raw.nfkd().filter(|&c| (c as u32) < 0x300 || (c as u32) > 0x36f).collect();
-    let b: Vec<char> = b_raw.nfkd().filter(|&c| (c as u32) < 0x300 || (c as u32) > 0x36f).collect();
+    let a: Vec<char> = a_raw
+        .nfkd()
+        .filter(|&c| (c as u32) < 0x300 || (c as u32) > 0x36f)
+        .collect();
+    let b: Vec<char> = b_raw
+        .nfkd()
+        .filter(|&c| (c as u32) < 0x300 || (c as u32) > 0x36f)
+        .collect();
 
     for (&a_char, &b_char) in a.iter().zip(b.iter()) {
         match char_cmp(a_char, b_char) {
@@ -267,12 +321,14 @@ pub fn all() -> Vec<Value> {
 
     let project = {
         use schema::projects::dsl::*;
-        projects.filter(name.eq("Rust"))
+        projects
+            .filter(name.eq("Rust"))
             .first::<Project>(&connection)
-        .expect("Error finding the Rust project")
+            .expect("Error finding the Rust project")
     };
 
-    let mut results = releases.filter(project_id.eq(project.id))
+    let mut results = releases
+        .filter(project_id.eq(project.id))
         .filter(visible.eq(true))
         .load::<Release>(&connection)
         .expect("Error loading releases");
@@ -287,14 +343,13 @@ pub fn all() -> Vec<Value> {
     };
 
     // next up, sort by semver version
-    results.sort_by(|a, b| {
-        a.semver_version().cmp(&b.semver_version())
-    });
+    results.sort_by(|a, b| a.semver_version().cmp(&b.semver_version()));
 
     // finally, push master/all-time back at the top
     results.push(master);
 
-    results.into_iter()
+    results
+        .into_iter()
         .rev()
         .map(|r| Value::String(r.version))
         .collect()
@@ -306,7 +361,8 @@ pub fn by_version(release_version: &str) -> Option<Release> {
 
     let connection = ::establish_connection();
 
-    let mut results = releases.filter(version.eq(release_version))
+    let mut results = releases
+        .filter(version.eq(release_version))
         .load::<Release>(&connection)
         .expect("Error loading release");
 

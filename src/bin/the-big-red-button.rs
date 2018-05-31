@@ -17,22 +17,31 @@ use diesel::pg::PgConnection;
 fn main() {
     let matches = App::new("the-big-red-button")
         .about("annihilate")
-        .arg(Arg::with_name("all")
-            .long("all")
-            .help("remove everything from the database")
-            .conflicts_with("project_name"))
-        .arg(Arg::with_name("project_name")
-            .short("n")
-            .long("name")
-            .help("name of the project to delete")
-            .conflicts_with("all")
-            .takes_value(true))
-        .group(ArgGroup::with_name("opts")
-               .args(&["all", "project_name"])
-               .required(true))
+        .arg(
+            Arg::with_name("all")
+                .long("all")
+                .help("remove everything from the database")
+                .conflicts_with("project_name"),
+        )
+        .arg(
+            Arg::with_name("project_name")
+                .short("n")
+                .long("name")
+                .help("name of the project to delete")
+                .conflicts_with("all")
+                .takes_value(true),
+        )
+        .group(
+            ArgGroup::with_name("opts")
+                .args(&["all", "project_name"])
+                .required(true),
+        )
         .get_matches();
 
-    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
+    let log = slog::Logger::root(
+        slog_term::streamer().full().build().fuse(),
+        o!("version" => env!("CARGO_PKG_VERSION")),
+    );
 
     let connection = thanks::establish_connection();
 
@@ -48,9 +57,9 @@ fn main() {
 }
 
 fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_name: &str) {
-    use thanks::schema::releases::dsl::{releases, id as _release_id};
+    use thanks::schema::releases::dsl::{id as _release_id, releases};
     use thanks::models::Release;
-    use thanks::schema::projects::dsl::{projects, name};
+    use thanks::schema::projects::dsl::{name, projects};
     use thanks::models::Project;
     use thanks::schema::commits::dsl::{commits, release_id};
     use thanks::schema::authors::dsl::{authors, id as _author_id};
@@ -58,11 +67,25 @@ fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_nam
     use diesel::expression::dsl::sql;
     use diesel::types::Bool;
 
-    let project = projects.filter(name.eq(project_name)).first::<Project>(connection).expect("Unknown project!");
-    let releases_to_delete = Release::belonging_to(&project).load::<Release>(connection).unwrap();
-    let release_names: Vec<&str> = releases_to_delete.iter().map(|ref release| release.version.as_str()).collect();
-    let release_ids: Vec<i32> = releases_to_delete.iter().map(|ref release| release.id).collect();
-    info!(log, "Deleting project {} with release names: {:?}", project_name, release_names);
+    let project = projects
+        .filter(name.eq(project_name))
+        .first::<Project>(connection)
+        .expect("Unknown project!");
+    let releases_to_delete = Release::belonging_to(&project)
+        .load::<Release>(connection)
+        .unwrap();
+    let release_names: Vec<&str> = releases_to_delete
+        .iter()
+        .map(|ref release| release.version.as_str())
+        .collect();
+    let release_ids: Vec<i32> = releases_to_delete
+        .iter()
+        .map(|ref release| release.id)
+        .collect();
+    info!(
+        log,
+        "Deleting project {} with release names: {:?}", project_name, release_names
+    );
 
     info!(log, "Deleting commits");
     diesel::delete(commits.filter(release_id.eq(any(&release_ids))))
@@ -72,8 +95,10 @@ fn delete_projects_db(log: &slog::Logger, connection: &PgConnection, project_nam
     info!(log, "Deleting authors");
     // we can rewrite the raw sql to a query builder
     // when diesel fixes this https://github.com/diesel-rs/diesel/issues/621
-    let author_ids_to_delete = authors.left_outer_join(commits)
-        .filter(sql::<Bool>("commits.id IS NULL")).select(_author_id);
+    let author_ids_to_delete = authors
+        .left_outer_join(commits)
+        .filter(sql::<Bool>("commits.id IS NULL"))
+        .select(_author_id);
     diesel::delete(authors.filter(_author_id.eq(any(author_ids_to_delete))))
         .execute(connection)
         .expect("Error deleting authorsreleases");

@@ -29,34 +29,44 @@ use thanks::models::Project;
 use thanks::mailmap::Mailmap;
 use thanks::authors::AuthorStore;
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 struct GitHubResponse(Vec<Object>);
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 struct Object {
     sha: String,
     commit: Commit,
 }
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 struct Commit {
     author: Author,
 }
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 struct Author {
     name: String,
     email: String,
 }
 
-fn update_commit_db(log: &slog::Logger, project: &Project, lookup: &mut AuthorStore, connection: &PgConnection) {
+fn update_commit_db(
+    log: &slog::Logger,
+    project: &Project,
+    lookup: &mut AuthorStore,
+    connection: &PgConnection,
+) {
     use thanks::schema::releases::dsl::*;
     use thanks::models::Release;
     use thanks::schema::commits::dsl::*;
     use thanks::models::Commit;
     use diesel::expression::dsl::any;
 
-    let api_link = Url::parse(format!("https://api.github.com/repos/{}/commits", project.github_name).as_str()).unwrap();
+    let api_link = Url::parse(
+        format!(
+            "https://api.github.com/repos/{}/commits",
+            project.github_name
+        ).as_str(),
+    ).unwrap();
     let mut resp = reqwest::get(api_link).unwrap();
 
     let response: GitHubResponse = resp.json().unwrap();
@@ -68,8 +78,12 @@ fn update_commit_db(log: &slog::Logger, project: &Project, lookup: &mut AuthorSt
         .first::<Release>(connection)
         .expect("could not find release");
 
-    let release_ids: Vec<i32> = Release::belonging_to(project).load::<Release>(connection).unwrap()
-        .iter().map(|ref release| release.id).collect();
+    let release_ids: Vec<i32> = Release::belonging_to(project)
+        .load::<Release>(connection)
+        .unwrap()
+        .iter()
+        .map(|ref release| release.id)
+        .collect();
 
     for object in response.0 {
         info!(log, "Found commit with sha {}", object.sha);
@@ -77,25 +91,38 @@ fn update_commit_db(log: &slog::Logger, project: &Project, lookup: &mut AuthorSt
         match commits
             .filter(release_id.eq(any(&release_ids)))
             .filter(sha.eq(&object.sha))
-            .first::<Commit>(connection) {
+            .first::<Commit>(connection)
+        {
             Ok(commit) => {
                 info!(log, "Commit {} already in db, skipping", commit.sha);
                 continue;
-            },
+            }
             Err(_) => {
-                info!(log, "Creating commit {} for release {}", object.sha, master_release.version);
+                info!(
+                    log,
+                    "Creating commit {} for release {}", object.sha, master_release.version
+                );
                 {
-                    let author = lookup.get(&object.commit.author.name, &object.commit.author.email);
+                    let author =
+                        lookup.get(&object.commit.author.name, &object.commit.author.email);
                     // this commit will be part of master
-                    drop(thanks::commits::create(connection, &object.sha, &author, &master_release));
+                    drop(thanks::commits::create(
+                        connection,
+                        &object.sha,
+                        &author,
+                        &master_release,
+                    ));
                 }
-            },
+            }
         };
     }
 }
 
 fn main() {
-    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
+    let log = slog::Logger::root(
+        slog_term::streamer().full().build().fuse(),
+        o!("version" => env!("CARGO_PKG_VERSION")),
+    );
 
     use thanks::schema::projects::dsl::*;
 

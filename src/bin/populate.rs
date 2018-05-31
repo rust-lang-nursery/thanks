@@ -29,33 +29,44 @@ use git2::Repository;
 fn main() {
     let matches = App::new("populate")
         .about("initialize the database")
-        .arg(Arg::with_name("filepath")
-            .short("p")
-            .long("path")
-            .help("filepath of the source code")
-            .takes_value(true)
-            .required(true))
-        .arg(Arg::with_name("url_path")
-            .short("u")
-            .long("url")
-            .help("url path for this project")
-            .takes_value(true)
-            .required(true))
-        .arg(Arg::with_name("name")
-            .short("n")
-            .long("name")
-            .help("name of the project")
-            .takes_value(true)
-            .required(true))
-        .arg(Arg::with_name("github_name")
-            .short("g")
-            .long("github")
-            .help("GitHub link of the project")
-            .takes_value(true)
-            .required(true))
+        .arg(
+            Arg::with_name("filepath")
+                .short("p")
+                .long("path")
+                .help("filepath of the source code")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("url_path")
+                .short("u")
+                .long("url")
+                .help("url path for this project")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("name")
+                .short("n")
+                .long("name")
+                .help("name of the project")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("github_name")
+                .short("g")
+                .long("github")
+                .help("GitHub link of the project")
+                .takes_value(true)
+                .required(true),
+        )
         .get_matches();
 
-    let log = slog::Logger::root(slog_term::streamer().full().build().fuse(), o!("version" => env!("CARGO_PKG_VERSION")));
+    let log = slog::Logger::root(
+        slog_term::streamer().full().build().fuse(),
+        o!("version" => env!("CARGO_PKG_VERSION")),
+    );
 
     let connection = thanks::establish_connection();
 
@@ -69,8 +80,14 @@ fn main() {
         use thanks::schema::projects::dsl::*;
         use thanks::models::Project;
 
-        if let Ok(project) = projects.filter(name.eq(project_name)).load::<Project>(&connection) {
-            if let Ok(count) = Release::belonging_to(&project).count().first::<i64>(&connection) {
+        if let Ok(project) = projects
+            .filter(name.eq(project_name))
+            .load::<Project>(&connection)
+        {
+            if let Ok(count) = Release::belonging_to(&project)
+                .count()
+                .first::<i64>(&connection)
+            {
                 if count > 0 {
                     panic!("you have releases in here already");
                 }
@@ -79,10 +96,10 @@ fn main() {
     }
 
     // check that we have no commits
-        // if there are no releases then there should be no commits as well
-        // so we may skip this check
-        // I consider changing release_id to NOT NULL since we assign commit
-        // to the first release on creation
+    // if there are no releases then there should be no commits as well
+    // so we may skip this check
+    // I consider changing release_id to NOT NULL since we assign commit
+    // to the first release on creation
 
     // get path to git repo
     let path = matches.value_of("filepath").unwrap();
@@ -102,39 +119,43 @@ fn main() {
     // Create releases
     let releases = [
         // version, previous version, link
-        ("0.2",             "0.1",              changelog_link("0.2")),
-        ("0.3",             "0.2",              changelog_link("0.3")),
-        ("0.4",             "0.3",              changelog_link("0.4")),
-        ("0.5",             "0.4",              changelog_link("0.5")),
-        ("0.6",             "0.5",              changelog_link("0.6")),
-        ("0.7",             "0.6",              changelog_link("0.7")),
-        ("0.8",             "0.7",              changelog_link("0.8")),
-        ("0.9",             "0.8",              changelog_link("0.9")),
-        ("0.10",            "0.9",              changelog_link("0.10")),
-        ("0.11.0",          "0.10",             changelog_link("0.11.0")),
-        ("0.12.0",          "0.11.0",           changelog_link("0.12.0")),
-        ("1.0.0-alpha",     "0.12.0",           changelog_link("1.0.0-alpha")),
-        ("1.0.0-alpha.2",   "1.0.0-alpha",      changelog_link("1.0.0-alpha.2")),
-        ("1.0.0-beta",      "1.0.0-alpha.2",    changelog_link("1.0.0-beta")),
-        ("1.0.0",           "1.0.0-beta",       changelog_link("1.0.0")),
-        ("1.1.0",           "1.0.0",            changelog_link("1.1.0")),
-        ("1.2.0",           "1.1.0",            changelog_link("1.2.0")),
-        ("1.3.0",           "1.2.0",            changelog_link("1.3.0")),
-        ("1.4.0",           "1.3.0",            changelog_link("1.4.0")),
-        ("1.5.0",           "1.4.0",            changelog_link("1.5.0")),
-        ("1.6.0",           "1.5.0",            changelog_link("1.6.0")),
-        ("1.7.0",           "1.6.0",            changelog_link("1.7.0")),
-        ("1.8.0",           "1.7.0",            changelog_link("1.8.0")),
-        ("1.9.0",           "1.8.0",            changelog_link("1.9.0")),
-        ("1.10.0",          "1.9.0",            changelog_link("1.10.0")),
-        ("1.11.0",          "1.10.0",           changelog_link("1.11.0")),
-        ("1.12.0",          "1.11.0",           changelog_link("1.12.0")),
-        ("1.12.1",          "1.12.0",           changelog_link("1.12.1")),
-        ("1.13.0",          "1.12.0",           changelog_link("1.13.0")),
-        ("1.14.0",          "1.13.0",           changelog_link("1.14.0")),
-        ("1.15.0",          "1.14.0",           changelog_link("1.15.0")),
-        ("1.15.1",          "1.15.0",           changelog_link("1.15.1")),
-        ("1.16.0",          "1.15.0",           changelog_link("1.16.0")),
+        ("0.2", "0.1", changelog_link("0.2")),
+        ("0.3", "0.2", changelog_link("0.3")),
+        ("0.4", "0.3", changelog_link("0.4")),
+        ("0.5", "0.4", changelog_link("0.5")),
+        ("0.6", "0.5", changelog_link("0.6")),
+        ("0.7", "0.6", changelog_link("0.7")),
+        ("0.8", "0.7", changelog_link("0.8")),
+        ("0.9", "0.8", changelog_link("0.9")),
+        ("0.10", "0.9", changelog_link("0.10")),
+        ("0.11.0", "0.10", changelog_link("0.11.0")),
+        ("0.12.0", "0.11.0", changelog_link("0.12.0")),
+        ("1.0.0-alpha", "0.12.0", changelog_link("1.0.0-alpha")),
+        (
+            "1.0.0-alpha.2",
+            "1.0.0-alpha",
+            changelog_link("1.0.0-alpha.2"),
+        ),
+        ("1.0.0-beta", "1.0.0-alpha.2", changelog_link("1.0.0-beta")),
+        ("1.0.0", "1.0.0-beta", changelog_link("1.0.0")),
+        ("1.1.0", "1.0.0", changelog_link("1.1.0")),
+        ("1.2.0", "1.1.0", changelog_link("1.2.0")),
+        ("1.3.0", "1.2.0", changelog_link("1.3.0")),
+        ("1.4.0", "1.3.0", changelog_link("1.4.0")),
+        ("1.5.0", "1.4.0", changelog_link("1.5.0")),
+        ("1.6.0", "1.5.0", changelog_link("1.6.0")),
+        ("1.7.0", "1.6.0", changelog_link("1.7.0")),
+        ("1.8.0", "1.7.0", changelog_link("1.8.0")),
+        ("1.9.0", "1.8.0", changelog_link("1.9.0")),
+        ("1.10.0", "1.9.0", changelog_link("1.10.0")),
+        ("1.11.0", "1.10.0", changelog_link("1.11.0")),
+        ("1.12.0", "1.11.0", changelog_link("1.12.0")),
+        ("1.12.1", "1.12.0", changelog_link("1.12.1")),
+        ("1.13.0", "1.12.0", changelog_link("1.13.0")),
+        ("1.14.0", "1.13.0", changelog_link("1.14.0")),
+        ("1.15.0", "1.14.0", changelog_link("1.15.0")),
+        ("1.15.1", "1.15.0", changelog_link("1.15.1")),
+        ("1.16.0", "1.15.0", changelog_link("1.16.0")),
     ];
 
     // create 0.1, which isn't in the loop because it will have everything assigned
@@ -146,7 +167,13 @@ fn main() {
     }
 
     // And create the release for all commits that are not released yet
-    thanks::releases::create(&connection, "master", project.id, true, changelog_link("master"));
+    thanks::releases::create(
+        &connection,
+        "master",
+        project.id,
+        true,
+        changelog_link("master"),
+    );
 
     let repo = Repository::open(path).unwrap();
 
@@ -154,16 +181,37 @@ fn main() {
     lookup.warm_cache(&repo);
 
     // assign first release
-    thanks::releases::assign_commits(&log, &repo, &mut lookup, "0.1", thanks::releases::get_first_commits(&repo, "0.1"), project.id);
+    thanks::releases::assign_commits(
+        &log,
+        &repo,
+        &mut lookup,
+        "0.1",
+        thanks::releases::get_first_commits(&repo, "0.1"),
+        project.id,
+    );
 
     // assign commits to their release
     for &(release, previous, _) in releases.iter() {
-        thanks::releases::assign_commits(&log, &repo, &mut lookup, release, thanks::releases::get_commits(&repo, release, previous), project.id);
+        thanks::releases::assign_commits(
+            &log,
+            &repo,
+            &mut lookup,
+            release,
+            thanks::releases::get_commits(&repo, release, previous),
+            project.id,
+        );
     }
 
     // assign master
     let last = releases.last().unwrap().0;
-    thanks::releases::assign_commits(&log, &repo, &mut lookup, "master", thanks::releases::get_commits(&repo, "master", last), project.id);
+    thanks::releases::assign_commits(
+        &log,
+        &repo,
+        &mut lookup,
+        "master",
+        thanks::releases::get_commits(&repo, "master", last),
+        project.id,
+    );
 
     info!(log, "Done!");
 }
@@ -208,4 +256,3 @@ fn changelog_link(version: &str) -> &str {
         _               => "https://github.com/rust-lang/rust/blob/master/RELEASES.md#",
     }
 }
-

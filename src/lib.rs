@@ -8,8 +8,8 @@ extern crate lazy_static;
 
 extern crate dotenv;
 
-extern crate semver;
 extern crate regex;
+extern crate semver;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
@@ -17,8 +17,8 @@ use diesel::pg::PgConnection;
 use dotenv::dotenv;
 
 extern crate caseless;
-extern crate unicode_normalization;
 extern crate git2;
+extern crate unicode_normalization;
 
 use std::env;
 
@@ -44,10 +44,8 @@ use serde_json::value::Value;
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    PgConnection::establish(&database_url).expect(&format!("Error connecting to {}", database_url))
 }
 
 pub fn scores() -> Vec<Value> {
@@ -58,7 +56,8 @@ pub fn scores() -> Vec<Value> {
 
     let connection = establish_connection();
 
-    let scores: Vec<_> = commits.inner_join(authors)
+    let scores: Vec<_> = commits
+        .inner_join(authors)
         .filter(visible.eq(true))
         .select((name, sql::<BigInt>("COUNT(author_id) AS author_count")))
         .group_by((author_id, name))
@@ -71,29 +70,31 @@ pub fn scores() -> Vec<Value> {
     let mut last_rank = 0; // the current rank
     let mut last_score = 0; // the previous entry's score
 
-    scores.into_iter().map(|(author, score)| {
-        // we always increment the ranking
-        rank += 1;
+    scores
+        .into_iter()
+        .map(|(author, score)| {
+            // we always increment the ranking
+            rank += 1;
 
-        // if we've hit a different score...
-        if last_score != score {
+            // if we've hit a different score...
+            if last_score != score {
+                // then we need to save these values for the future iteration
+                last_rank = rank;
+                last_score = score;
+            }
 
-            // then we need to save these values for the future iteration
-            last_rank = rank;
-            last_score = score;
-        }
+            let mut json_score: Map<String, Value> = Map::new();
 
-        let mut json_score: Map<String, Value> = Map::new();
+            // we use last_rank here so that we get duplicate ranks for people
+            // with the same number of commits
+            json_score.insert("rank".to_string(), Value::Number(last_rank.into()));
 
-        // we use last_rank here so that we get duplicate ranks for people
-        // with the same number of commits
-        json_score.insert("rank".to_string(), Value::Number(last_rank.into()));
+            json_score.insert("author".to_string(), Value::String(author));
+            json_score.insert("commits".to_string(), Value::Number(score.into()));
 
-        json_score.insert("author".to_string(), Value::String(author));
-        json_score.insert("commits".to_string(), Value::Number(score.into()));
-
-        Value::Object(json_score)
-    }).collect()
+            Value::Object(json_score)
+        })
+        .collect()
 }
 
 /// are we in maintenance mode?
@@ -103,9 +104,11 @@ pub fn in_maintenance() -> bool {
 
     let connection = establish_connection();
 
-    let model = maintenances.find(1)
-            .load::<Maintenance>(&connection)
-            .expect("Error loading maintenance model").remove(0);
+    let model = maintenances
+        .find(1)
+        .load::<Maintenance>(&connection)
+        .expect("Error loading maintenance model")
+        .remove(0);
 
     model.enabled
 }

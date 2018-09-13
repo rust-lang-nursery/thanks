@@ -64,6 +64,7 @@ slog-term = "1.3.5"
 unicode-normalization = "0.1.0"
 git2 = "0.6"
 lazy_static = "0.2"
+libssh2-sys = "0.2.5"
 
 [dependencies.diesel_codegen]
 features = ["postgres"]
@@ -74,8 +75,9 @@ features = ["serde_type"]
 version = "0.25.0"
 
 [dependencies.hyper]
-branch = "master"
 git = "https://github.com/hyperium/hyper"
+rev = "8554904dc941a376b25fbcea85e828ea00c13402"
 
 [dependencies.sparkles]
 git = "https://github.com/steveklabnik/sparkles"
+rev = "1eebd5c57d78298665a2e9fcd298bd45e6c3060b"

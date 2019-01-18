@@ -1,34 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
     <title>Rust Contributors</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="/styles/bootstrap.css" />
-    <link rel="stylesheet" href="/styles/styles.css" />
-    <link rel="stylesheet" href="/styles/custom.css" />
+
+    <!-- fonts -->
+    <link rel="preload" as="font" crossorigin href="/fonts/AlfaSlabOne-Regular.ttf">
+    <link rel="preload" as="font" crossorigin href="/fonts/FiraSans-ExtraBold.ttf">
+    <link rel="preload" as="font" crossorigin href="/fonts/FiraSans-ExtraBoldItalic.ttf">
+    <link rel="preload" as="font" crossorigin href="/fonts/FiraSans-Italic.ttf">
+    <link rel="preload" as="font" crossorigin href="/fonts/FiraSans-Italic.ttf">
+    <link rel="preload" as="font" crossorigin href="/fonts/FiraSans-Regular.ttf">
+    <link rel="preload" as="font" crossorigin href="/fonts/FiraSans-SemiBold.ttf">
+    <link rel="preload" as="font" crossorigin href="/fonts/FiraSans-SemiBoldItalic.ttf">
+
+    <!-- styles -->
+    <link rel="stylesheet" href="/styles/vendor.css" />
+    <link rel="stylesheet" href="/styles/fonts.css" />
+    <link rel="stylesheet" href="/styles/app.css" />
+
+    <!-- favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="shortcut icon" href="/images/favicon.ico">
+    <link rel="manifest" href="/images/site.webmanifest">
+    <link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#00aba9">
+    <meta name="theme-color" content="#ffffff">
 </head>
 
-<body class="container">
-    <div class="center">
-        <h1 class="jumbo">
-        <img src="/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
-        <img src="/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
-        Thanks!
-        <img src="/images/sparkle-heart.png" alt="sparkle heart" class="emoji"/>
-        <img src="/images/rust-logo-blk.png" alt="rust logo" class="emoji"/>
-      </h1>
-      {{#if maintenance}}
-      <div style="border-style: dashed; border-width: 5px; border-color: red; text-align: center;">
-          <h3>We are doing maintenance on the database</h3>
-          <p>You may see incorrect results. Sorry about that! It should be done soon.</p>
-      </div>
-      {{/if}}
-      {{~> content}}
+<body>
+    <nav class="flex flex-row justify-center justify-end-l items-center flex-wrap ph2 pl3-ns pr4-ns">
+        <div class="brand flex-auto w-100 w-auto-l self-start tc tl-l">
+            <a href="/">
+                <img class="v-mid ml0-l" alt="Rust Logo" src="/images/rust-logo-blk.svg">
+                <span class="dib ml1 ml0-l">Rust Thanks</span>
+            </a>
+        </div>
 
+        <ul class="nav list w-100 w-auto-l flex flex-none flex-row flex-wrap justify-center justify-end-l items-center pv2 ph0 ph4-ns">
+            <li class="tc pv2 ph2 ph4-ns flex-20-s"><a href="https://www.rust-lang.org">Rust</a></li>
+            <li class="tc pv2 ph2 ph4-ns flex-20-s"><a href="https://www.rust-lang.org/tools/install">Install</a></li>
+            <li class="tc pv2 ph2 ph4-ns flex-20-s"><a href="https://www.rust-lang.org/learn">Learn</a></li>
+            <li class="tc pv2 ph2 ph4-ns flex-20-s"><a href="https://www.rust-lang.org/tools">Tools</a></li>
+            <li class="tc pv2 ph2 ph4-ns flex-20-s"><a href="https://www.rust-lang.org/governance">Governance</a></li>
+            <li class="tc pv2 ph2 ph4-ns flex-20-s"><a href="https://www.rust-lang.org/community">Community</a></li>
+        </ul>
+    </nav>
+    {{~> content}}
     </div>
 </body>
-
 </html>

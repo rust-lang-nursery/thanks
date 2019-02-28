@@ -44,13 +44,13 @@ name = "visible"
 path = "src/bin/visible.rs"
 
 [build-dependencies]
-diesel = "0.12.0"
+diesel = "1.0.0"
+diesel_migrations = "1.4.0"
 dotenv = "0.9.0"
 
 [dependencies]
 caseless = "0.1.2"
 clap = "2.19.0"
-diesel = "0.12.0"
 dotenv = "0.9.0"
 futures = "0.1.7"
 regex = "0.2.1"
@@ -62,13 +62,13 @@ serde_json = "0.9.0"
 slog = "1.4.1"
 slog-term = "1.3.5"
 unicode-normalization = "0.1.0"
-git2 = "0.6"
+git2 = "0.8"
 lazy_static = "0.2"
 libssh2-sys = "0.2.5"
 
-[dependencies.diesel_codegen]
+[dependencies.diesel]
+version = "1.0.0"
 features = ["postgres"]
-version = "0.12.0"
 
 [dependencies.handlebars]
 features = ["serde_type"]

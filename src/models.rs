@@ -1,5 +1,4 @@
 #[derive(Debug, Identifiable, Queryable, Associations)]
-#[has_many(releases)]
 pub struct Project {
     pub id: i32,
     pub name: String,
@@ -18,7 +17,6 @@ pub struct Commit {
 }
 
 #[derive(Debug, Identifiable, Queryable, Associations)]
-#[has_many(commits)]
 #[belongs_to(Project)]
 pub struct Release {
     pub id: i32,
@@ -29,7 +27,6 @@ pub struct Release {
 }
 
 #[derive(Debug, Identifiable, Queryable, Associations, Clone)]
-#[has_many(commits)]
 pub struct Author {
     pub id: i32,
     pub name: String,

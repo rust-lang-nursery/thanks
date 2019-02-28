@@ -1,4 +1,5 @@
 extern crate diesel;
+extern crate diesel_migrations;
 extern crate dotenv;
 
 use diesel::prelude::*;
@@ -15,6 +16,6 @@ fn main() {
     let connection = PgConnection::establish(&database_url)
         .expect(&format!("Error connecting to {}", database_url));
 
-    diesel::migrations::run_pending_migrations(&connection)
+    diesel_migrations::run_pending_migrations(&connection)
         .expect("oh no migrations couldn't be run");
 }

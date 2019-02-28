@@ -15,8 +15,8 @@ pub fn create<'a>(conn: &PgConnection, sha: &'a str, author: &Author, release: &
         author_id: author.id,
     };
 
-    diesel::insert(&new_commit)
-        .into(commits::table)
+    diesel::insert_into(commits::table)
+        .values(&new_commit)
         .get_result(conn)
         .expect("Error saving new commit")
 }

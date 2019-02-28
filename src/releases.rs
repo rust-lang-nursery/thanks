@@ -109,10 +109,11 @@ pub fn assign_commits(
             };
 
             // Set the release id of any commits that already existed
-            let inserted = insert(&commits.on_conflict(
-                commits::sha,
-                do_update().set(commits::release_id.eq(the_release.id)),
-            )).into(commits::table)
+            let inserted = insert_into(commits::table)
+                .values(&commits)
+                .on_conflict(commits::sha)
+                .do_update()
+                .set(commits::release_id.eq(the_release.id))
                 .execute(&connection)?;
 
             if inserted == commits.len() {
@@ -200,8 +201,8 @@ pub fn create(
         link: link,
     };
 
-    insert(&new_release)
-        .into(releases::table)
+    insert_into(releases::table)
+        .values(&new_release)
         .get_result(conn)
         .expect("Error saving new release")
 }

@@ -34,7 +34,7 @@ pub struct Author {
     pub visible: bool,
 }
 
-use super::schema::projects;
+use schema::projects;
 
 #[derive(Insertable)]
 #[table_name = "projects"]
@@ -44,7 +44,7 @@ pub struct NewProject<'a> {
     pub github_name: &'a str,
 }
 
-use super::schema::commits;
+use schema::commits;
 
 #[derive(Insertable)]
 #[table_name = "commits"]
@@ -54,7 +54,7 @@ pub struct NewCommit<'a> {
     pub author_id: i32,
 }
 
-use super::schema::releases;
+use schema::releases;
 
 #[derive(Insertable)]
 #[table_name = "releases"]
@@ -65,7 +65,7 @@ pub struct NewRelease<'a> {
     pub link: &'a str,
 }
 
-use super::schema::authors;
+use schema::authors;
 
 #[derive(Insertable, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[table_name = "authors"]
@@ -74,7 +74,7 @@ pub struct NewAuthor<'a> {
     pub email: &'a str,
 }
 
-use super::schema::maintenances;
+use schema::maintenances;
 
 #[derive(Debug, Identifiable, Queryable)]
 pub struct Maintenance {

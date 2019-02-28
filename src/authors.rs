@@ -105,8 +105,9 @@ impl<'a> AuthorStore<'a> {
                     let the_names = &missing_names[start..end];
                     let the_emails = &missing_emails[start..end];
 
-                    insert(&chunk.on_conflict_do_nothing())
-                        .into(authors)
+                    insert_into(authors)
+                        .values(chunk)
+                        .on_conflict_do_nothing()
                         .execute(self.conn)
                         .unwrap();
 
@@ -167,8 +168,9 @@ impl<'a> AuthorStore<'a> {
         use schema::authors::dsl::*;
         use diesel::pg::upsert::*;
 
-        let maybe_inserted = insert(&new_author.on_conflict_do_nothing())
-            .into(authors)
+        let maybe_inserted = insert_into(authors)
+            .values(new_author)
+            .on_conflict_do_nothing()
             .get_result(self.conn)
             .optional()?;
 

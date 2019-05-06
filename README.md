@@ -2,8 +2,8 @@
 
 [![Build Status][status-img]][status]
 
-[status-img]: https://travis-ci.org/rust-lang-nursery/thanks.svg?branch=master
-[status]: https://travis-ci.org/rust-lang-nursery/thanks
+[status-img]: https://travis-ci.com/rust-lang-nursery/thanks.svg?branch=master
+[status]: https://travis-ci.com/rust-lang-nursery/thanks
 
 This web application shows people who have contributed to Rust.
 
